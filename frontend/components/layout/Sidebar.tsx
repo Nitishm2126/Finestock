@@ -24,9 +24,9 @@ interface SidebarProps {
 
 export const navigationItems = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, badge: 'Phase 1' },
-  { name: 'Products', href: '#', icon: Package, badge: 'Phase 2' },
-  { name: 'Warehouses', href: '#', icon: Warehouse, badge: 'Phase 2' },
-  { name: 'Inventory', href: '#', icon: Boxes, badge: 'Phase 3' },
+  { name: 'Products', href: '/products', icon: Package, badge: 'Phase 1' },
+  { name: 'Warehouses', href: '/warehouses', icon: Warehouse, badge: 'Phase 1' },
+  { name: 'Inventory', href: '/inventory', icon: Boxes, badge: 'Phase 1' },
   { name: 'Operations', href: '#', icon: ArrowLeftRight, badge: 'Phase 4' },
   { name: 'Ledger', href: '#', icon: BookOpenText, badge: 'Core' },
   { name: 'Intelligence', href: '#', icon: Sparkles, badge: 'AI' },
