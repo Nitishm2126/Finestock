@@ -30,7 +30,7 @@ export function AppShell({
 
         if (res.success) {
           setBackendStatus('online');
-          setSupabaseStatus(res.services?.supabase || 'unknown');
+          setSupabaseStatus(res.database || res.services?.database || 'unknown');
         } else {
           setBackendStatus('offline');
           setSupabaseStatus('disconnected');

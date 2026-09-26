@@ -37,11 +37,11 @@ export default function HomePage() {
               </div>
               <div className="flex items-center gap-2 rounded-lg bg-slate-800/80 px-3 py-2 border border-slate-700 text-xs text-slate-300">
                 <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-                <span>Backend Express API Online</span>
+                <span>FastAPI Backend Online</span>
               </div>
               <div className="flex items-center gap-2 rounded-lg bg-slate-800/80 px-3 py-2 border border-slate-700 text-xs text-slate-300">
                 <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-                <span>Supabase Foundation Ready</span>
+                <span>PostgreSQL Schema Migrated</span>
               </div>
             </div>
           </div>
@@ -90,7 +90,7 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* Card 2: Express Backend */}
+          {/* Card 2: FastAPI Backend */}
           <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5 hover:border-slate-700 transition-colors">
             <div className="flex items-center justify-between mb-3">
               <div className="rounded-lg bg-slate-800 p-2 text-slate-200">
@@ -100,25 +100,25 @@ export default function HomePage() {
                 Running
               </span>
             </div>
-            <h4 className="text-sm font-semibold text-white">Express Backend</h4>
+            <h4 className="text-sm font-semibold text-white">FastAPI Backend</h4>
             <p className="mt-1 text-xs text-slate-400 leading-relaxed">
-              TypeScript API runtime with central error handling, CORS, and health monitoring.
+              Python 3.12, Uvicorn, Pydantic v2, CORS, and modular router architecture.
             </p>
           </div>
 
-          {/* Card 3: Supabase Client Foundation */}
+          {/* Card 3: PostgreSQL Database Schema */}
           <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5 hover:border-slate-700 transition-colors">
             <div className="flex items-center justify-between mb-3">
               <div className="rounded-lg bg-slate-800 p-2 text-slate-200">
                 <Database className="h-5 w-5 text-cyan-400" />
               </div>
-              <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-semibold text-blue-400 border border-blue-500/20">
-                Configured
+              <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-400 border border-emerald-500/20">
+                Migrated
               </span>
             </div>
-            <h4 className="text-sm font-semibold text-white">Supabase Client</h4>
+            <h4 className="text-sm font-semibold text-white">PostgreSQL + Alembic</h4>
             <p className="mt-1 text-xs text-slate-400 leading-relaxed">
-              Server and browser client utilities with strict isolation of service role keys.
+              All 9 Phase 1 tables, foreign keys, check constraints, and indexes applied.
             </p>
           </div>
 
@@ -156,23 +156,23 @@ export default function HomePage() {
               <CheckCircle2 className="h-4 w-4 text-emerald-400 mt-0.5 shrink-0" />
               <div>
                 <div className="text-xs font-semibold text-white">Prompt 1: Project Foundation</div>
-                <div className="text-[11px] text-slate-400">Next.js + Express + TypeScript + App Shell</div>
+                <div className="text-[11px] text-slate-400">Next.js + App Shell + Visual Styling</div>
               </div>
             </div>
 
             <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3.5 flex items-start gap-3">
               <CheckCircle2 className="h-4 w-4 text-emerald-400 mt-0.5 shrink-0" />
               <div>
-                <div className="text-xs font-semibold text-white">Prompt 2: Supabase Foundation</div>
-                <div className="text-[11px] text-slate-400">Dual-client setup, health verification, security</div>
+                <div className="text-xs font-semibold text-white">Prompt 2: Backend Pivot &amp; Setup</div>
+                <div className="text-[11px] text-slate-400">Python 3.12, FastAPI, SQLAlchemy 2</div>
               </div>
             </div>
 
-            <div className="rounded-lg border border-slate-800 bg-slate-900/30 p-3.5 flex items-start gap-3 opacity-60">
-              <Clock className="h-4 w-4 text-slate-500 mt-0.5 shrink-0" />
+            <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3.5 flex items-start gap-3">
+              <CheckCircle2 className="h-4 w-4 text-emerald-400 mt-0.5 shrink-0" />
               <div>
-                <div className="text-xs font-semibold text-slate-300">Prompt 3: Database Schema</div>
-                <div className="text-[11px] text-slate-400">Tables, RLS policies, indexes, migrations</div>
+                <div className="text-xs font-semibold text-white">Prompt 3: Database Schema</div>
+                <div className="text-[11px] text-slate-400">9 PostgreSQL Tables, Alembic Migrations, Check Constraints</div>
               </div>
             </div>
           </div>

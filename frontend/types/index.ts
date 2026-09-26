@@ -11,6 +11,7 @@ export interface NavItem {
 export interface ApiResponse<T = unknown> {
   success: boolean;
   message: string;
+  database?: string;
   data?: T;
   services?: Record<string, string>;
 }
