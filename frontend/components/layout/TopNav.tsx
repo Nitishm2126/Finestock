@@ -6,7 +6,8 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Package, Warehouse, Boxes, ArrowLeftRight, BookOpenText,
   Sparkles, Settings, Users, ShieldCheck, Menu, X, ChevronDown,
-  Sun, Moon, Monitor, Bell, Search, HelpCircle, LogOut, User
+  Sun, Moon, Monitor, Bell, Search, HelpCircle, LogOut, User,
+  Truck, ArrowDownToLine, ArrowUpFromLine, CheckSquare, Box, Sliders, History, Activity
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { useTheme } from '@/lib/theme/ThemeProvider';
@@ -21,31 +22,42 @@ const navGroups = [
     items: [
       { label: 'Products', href: '/products', icon: Package },
       { label: 'Warehouses', href: '/warehouses', icon: Warehouse },
-      { label: 'Stock', href: '/inventory', icon: Boxes },
+      { label: 'Stock Control', href: '/inventory', icon: Boxes },
+      { label: 'Suppliers', href: '/suppliers', icon: Truck },
     ],
   },
   {
     label: 'Operations',
     items: [
-      { label: 'Operations', href: '/operations', icon: ArrowLeftRight },
-      { label: 'Ledger', href: '/ledger', icon: BookOpenText },
+      { label: 'Receipts', href: '/operations/receipts', icon: ArrowDownToLine },
+      { label: 'Deliveries', href: '/operations/deliveries', icon: ArrowUpFromLine },
+      { label: 'Picking', href: '/operations/picking', icon: CheckSquare },
+      { label: 'Packing', href: '/operations/packing', icon: Box },
+      { label: 'Transfers', href: '/operations/transfers', icon: ArrowLeftRight },
+      { label: 'Adjustments', href: '/operations/adjustments', icon: Sliders },
+      { label: 'Movement History', href: '/operations/history', icon: History },
+    ],
+  },
+  {
+    label: 'Control',
+    items: [
+      { label: 'Live Operations', href: '/operations/live', icon: Activity },
+      { label: 'Ledger Audit', href: '/ledger', icon: BookOpenText },
     ],
   },
   {
     label: 'Intelligence',
     items: [
-      { label: 'Inventory Health', href: '/intelligence/health', icon: Sparkles },
-      { label: 'Predictive Radar', href: '/intelligence/predictive', icon: Sparkles },
-      { label: 'AI Copilot', href: '/intelligence/copilot', icon: Sparkles },
-      { label: 'Anomalies', href: '/intelligence/anomalies', icon: Sparkles },
-      { label: 'Simulator', href: '/intelligence/simulator', icon: Sparkles },
+      { label: 'Inventory Health (Roadmap)', href: '/intelligence/health', icon: Sparkles },
+      { label: 'Predictive Radar (Phase 5)', href: '/intelligence/predictive', icon: Sparkles },
+      { label: 'AI Copilot (Future)', href: '/intelligence/copilot', icon: Sparkles },
+      { label: 'Anomalies (Roadmap)', href: '/intelligence/anomalies', icon: Sparkles },
     ],
   },
   {
     label: 'Administration',
     items: [
       { label: 'Users', href: '/users', icon: Users },
-      { label: 'Roles & Permissions', href: '/settings', icon: ShieldCheck },
       { label: 'Settings', href: '/settings', icon: Settings },
     ],
   },

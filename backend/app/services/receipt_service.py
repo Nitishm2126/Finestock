@@ -136,8 +136,7 @@ class ReceiptService:
             action="CREATE",
             entity_type="RECEIPT",
             entity_id=str(receipt.id),
-            before_state=None,
-            after_state={"receipt_number": receipt_number, "status": "WAITING"},
+            metadata_={"receipt_number": receipt_number, "status": "WAITING"},
         )
         db.add(audit)
 
@@ -283,8 +282,7 @@ class ReceiptService:
             action="VALIDATE",
             entity_type="RECEIPT",
             entity_id=str(receipt.id),
-            before_state={"status": "WAITING"},
-            after_state={"status": "DONE", "receipt_number": receipt.receipt_number},
+            metadata_={"status": "DONE", "receipt_number": receipt.receipt_number},
         )
         db.add(audit)
 
@@ -338,8 +336,7 @@ class ReceiptService:
             action="CANCEL",
             entity_type="RECEIPT",
             entity_id=str(receipt.id),
-            before_state={"status": receipt.status},
-            after_state={"status": "CANCELLED"},
+            metadata_={"status": "CANCELLED"},
         )
         db.add(audit)
 

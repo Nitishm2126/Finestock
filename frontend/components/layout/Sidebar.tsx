@@ -14,6 +14,14 @@ import {
   X,
   ShieldCheck,
   Users,
+  Truck,
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  CheckSquare,
+  Box,
+  Sliders,
+  History,
+  Activity
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -46,32 +54,43 @@ export const navigationSections: NavSection[] = [
     items: [
       { name: 'Products', href: '/products', icon: Package },
       { name: 'Warehouses', href: '/warehouses', icon: Warehouse },
-      { name: 'Stock', href: '/inventory', icon: Boxes },
+      { name: 'Stock Control', href: '/inventory', icon: Boxes },
+      { name: 'Suppliers', href: '/suppliers', icon: Truck },
+    ]
+  },
+  {
+    label: 'Operations',
+    items: [
+      { name: 'Receipts', href: '/operations/receipts', icon: ArrowDownToLine },
+      { name: 'Deliveries', href: '/operations/deliveries', icon: ArrowUpFromLine },
+      { name: 'Picking', href: '/operations/picking', icon: CheckSquare },
+      { name: 'Packing', href: '/operations/packing', icon: Box },
+      { name: 'Transfers', href: '/operations/transfers', icon: ArrowLeftRight },
+      { name: 'Adjustments', href: '/operations/adjustments', icon: Sliders },
+      { name: 'Movement History', href: '/operations/history', icon: History },
     ]
   },
   {
     label: 'Control',
     items: [
-      { name: 'Operations', href: '/operations', icon: ArrowLeftRight },
-      { name: 'Ledger', href: '/ledger', icon: BookOpenText },
+      { name: 'Live Operations', href: '/operations/live', icon: Activity },
+      { name: 'Ledger Audit', href: '/ledger', icon: BookOpenText },
     ]
   },
   {
     label: 'Intelligence',
     items: [
-      { name: 'Inventory Health', href: '#', icon: Sparkles, badge: 'AI' },
-      { name: 'Predictive Radar', href: '#', icon: Sparkles, badge: 'AI' },
-      { name: 'AI Copilot', href: '#', icon: Sparkles, badge: 'AI' },
-      { name: 'Anomalies', href: '#', icon: Sparkles, badge: 'AI' },
-      { name: 'Simulator', href: '#', icon: Sparkles, badge: 'AI' },
+      { name: 'Inventory Health', href: '/intelligence/health', icon: Sparkles, badge: 'Phase 4' },
+      { name: 'Predictive Radar', href: '/intelligence/predictive', icon: Sparkles, badge: 'Phase 5' },
+      { name: 'AI Copilot', href: '/intelligence/copilot', icon: Sparkles, badge: 'Future' },
+      { name: 'Anomalies', href: '/intelligence/anomalies', icon: Sparkles, badge: 'Phase 4' },
     ]
   },
   {
     label: 'Administration',
     items: [
       { name: 'Users', href: '/users', icon: Users },
-      { name: 'Roles & Permissions', href: '#', icon: ShieldCheck },
-      { name: 'Settings', href: '#', icon: Settings },
+      { name: 'Settings', href: '/settings', icon: Settings },
     ]
   }
 ];

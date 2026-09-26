@@ -6,11 +6,11 @@ import { AppShell } from '@/components/layout/AppShell';
 import { Sparkles, ArrowLeft, Lock } from 'lucide-react';
 
 const FEATURE_DATA: Record<string, { title: string; description: string; phase: string; details: string }> = {
-  health: { title: 'Inventory Health', description: 'AI-driven analysis identifying health risks across your entire inventory.', phase: 'Phase 2', details: 'Uses historical movement data from the immutable ledger to score each product\'s health across dimensions: demand trend, aging, reorder behavior, and accuracy.' },
-  predictive: { title: 'Predictive Radar', description: 'Machine learning models to forecast demand and replenishment needs.', phase: 'Phase 2', details: 'Leverages time-series analysis on ledger event data to predict future stock positions and trigger smart replenishment recommendations.' },
-  copilot: { title: 'AI Copilot', description: 'Conversational AI assistant for natural language inventory queries.', phase: 'Phase 3', details: 'A fine-tuned language model with real-time access to inventory state, enabling natural queries like "What\'s low stock this week in Chennai?"' },
-  anomalies: { title: 'Anomaly Detection', description: 'Real-time detection of unusual patterns in stock movements.', phase: 'Phase 2', details: 'Applies statistical process control on ledger events to flag unusual patterns — shrinkage, unexpected adjustments, location discrepancies.' },
-  simulator: { title: 'Inventory Simulator', description: 'Model demand scenarios and evaluate their network-wide impact.', phase: 'Phase 3', details: 'A Monte Carlo simulation engine that uses your historical data to test what-if scenarios — demand spikes, supplier delays, warehouse shutdowns.' },
+  health: { title: 'Inventory Health', description: 'AI-driven analysis identifying health risks across your entire inventory.', phase: 'Phase 4 (Roadmap)', details: 'Uses historical movement data from the immutable ledger to score each product\'s health across dimensions: demand trend, aging, reorder behavior, and accuracy.' },
+  predictive: { title: 'Predictive Radar', description: 'Machine learning models to forecast demand and replenishment needs.', phase: 'Phase 5 (Roadmap)', details: 'Leverages time-series analysis on ledger event data to predict future stock positions and trigger smart replenishment recommendations.' },
+  copilot: { title: 'AI Copilot', description: 'Conversational AI assistant for natural language inventory queries.', phase: 'Phase 6 (Future)', details: 'A fine-tuned language model with real-time access to inventory state, enabling natural queries like "What\'s low stock this week in Chennai?"' },
+  anomalies: { title: 'Anomaly Detection', description: 'Real-time detection of unusual patterns in stock movements.', phase: 'Phase 4 (Roadmap)', details: 'Applies statistical process control on ledger events to flag unusual patterns — shrinkage, unexpected adjustments, location discrepancies.' },
+  simulator: { title: 'Inventory Simulator', description: 'Model demand scenarios and evaluate their network-wide impact.', phase: 'Phase 5 (Roadmap)', details: 'A Monte Carlo simulation engine that uses your historical data to test what-if scenarios — demand spikes, supplier delays, warehouse shutdowns.' },
 };
 
 export default function IntelligenceDetailPage() {

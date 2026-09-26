@@ -127,8 +127,7 @@ class AdjustmentService:
             action="CREATE",
             entity_type="ADJUSTMENT",
             entity_id=str(adjustment.id),
-            before_state=None,
-            after_state={"adjustment_number": adjustment_number, "difference": str(difference)},
+            metadata_={"adjustment_number": adjustment_number, "difference": str(difference)},
         )
         db.add(audit)
 
@@ -220,8 +219,7 @@ class AdjustmentService:
             action="APPROVE",
             entity_type="ADJUSTMENT",
             entity_id=str(adjustment.id),
-            before_state={"status": "PENDING_APPROVAL"},
-            after_state={"status": "APPROVED", "difference": str(actual_delta)},
+            metadata_={"status": "APPROVED", "difference": str(actual_delta)},
         )
         db.add(audit)
 
@@ -272,8 +270,7 @@ class AdjustmentService:
             action="CANCEL",
             entity_type="ADJUSTMENT",
             entity_id=str(adjustment.id),
-            before_state={"status": adjustment.status},
-            after_state={"status": "CANCELLED"},
+            metadata_={"status": "CANCELLED"},
         )
         db.add(audit)
 

@@ -9,6 +9,14 @@ from app.api.routes.warehouses import router as warehouses_router
 from app.api.routes.locations import router as locations_router
 from app.api.routes.inventory import router as inventory_router
 from app.api.routes.dashboard import router as dashboard_router
+from app.api.routes.suppliers import router as suppliers_router
+from app.api.routes.receipts import router as receipts_router
+from app.api.routes.deliveries import router as deliveries_router
+from app.api.routes.transfers import router as transfers_router
+from app.api.routes.adjustments import router as adjustments_router
+from app.api.routes.movements import router as movements_router
+from app.api.routes.alerts import router as alerts_router
+from app.api.routes.realtime import router as realtime_router
 
 api_router = APIRouter()
 api_router.include_router(health_router, tags=["Health"])
@@ -21,5 +29,13 @@ api_router.include_router(warehouses_router)
 api_router.include_router(locations_router)
 api_router.include_router(inventory_router)
 api_router.include_router(dashboard_router)
+api_router.include_router(suppliers_router)
+api_router.include_router(receipts_router)
+api_router.include_router(deliveries_router)
+api_router.include_router(transfers_router)
+api_router.include_router(adjustments_router)
+api_router.include_router(movements_router)
+api_router.include_router(alerts_router)
+api_router.include_router(realtime_router)
 
 __all__ = ["api_router"]

@@ -20,7 +20,7 @@ const features: IntelligenceFeature[] = [
     title: 'Inventory Health',
     description: 'AI-driven analysis of your inventory health across all warehouses, identifying risks before they become problems.',
     capabilities: ['Health score per product', 'Risk segmentation', 'Aging stock detection', 'Demand signal analysis'],
-    phase: 'Phase 2',
+    phase: 'Phase 4 (Roadmap)',
     color: 'var(--success)',
   },
   {
@@ -28,7 +28,7 @@ const features: IntelligenceFeature[] = [
     title: 'Predictive Radar',
     description: 'Machine learning forecasts for demand, replenishment timing and potential stockout prediction.',
     capabilities: ['Demand forecasting', 'Replenishment recommendations', 'Seasonal pattern detection', 'Supplier lead time modeling'],
-    phase: 'Phase 2',
+    phase: 'Phase 5 (Roadmap)',
     color: 'var(--primary)',
   },
   {
@@ -36,7 +36,7 @@ const features: IntelligenceFeature[] = [
     title: 'AI Copilot',
     description: 'A conversational AI assistant that lets you query your inventory data using natural language.',
     capabilities: ['Natural language queries', 'Instant stock analysis', 'Operational recommendations', 'Report generation via chat'],
-    phase: 'Phase 3',
+    phase: 'Phase 6 (Future)',
     color: 'var(--info)',
   },
   {
@@ -44,7 +44,7 @@ const features: IntelligenceFeature[] = [
     title: 'Anomaly Detection',
     description: 'Real-time detection of unusual inventory patterns, potential shrinkage and data integrity issues.',
     capabilities: ['Unexpected stock changes', 'Location discrepancies', 'Movement anomalies', 'Cycle count variance'],
-    phase: 'Phase 2',
+    phase: 'Phase 4 (Roadmap)',
     color: 'var(--warning)',
   },
   {
@@ -52,7 +52,7 @@ const features: IntelligenceFeature[] = [
     title: 'Inventory Simulator',
     description: 'Simulate demand scenarios and evaluate their impact on stock levels across the warehouse network.',
     capabilities: ['Scenario modeling', 'What-if analysis', 'Safety stock optimization', 'Network rebalancing simulation'],
-    phase: 'Phase 3',
+    phase: 'Phase 5 (Roadmap)',
     color: 'var(--danger)',
   },
 ];
@@ -109,7 +109,7 @@ export default function IntelligencePage() {
           </p>
           <div className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold" style={{ background: 'var(--warning-soft)', color: 'var(--warning)' }}>
             <span className="h-2 w-2 rounded-full" style={{ background: 'var(--warning)' }} />
-            Coming in Phase 2 & 3
+            Planned Roadmap (Phase 4+)
           </div>
         </div>
 

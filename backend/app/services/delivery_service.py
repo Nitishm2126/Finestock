@@ -142,8 +142,7 @@ class DeliveryService:
             action="CREATE",
             entity_type="DELIVERY",
             entity_id=str(delivery.id),
-            before_state=None,
-            after_state={"delivery_number": delivery_number, "status": "WAITING"},
+            metadata_={"delivery_number": delivery_number, "status": "WAITING"},
         )
         db.add(audit)
 
@@ -210,7 +209,6 @@ class DeliveryService:
 
         delivery.version += 1
         db.commit()
-        db.refresh(delivery)
 
         try:
             loop = asyncio.get_event_loop()
@@ -439,8 +437,7 @@ class DeliveryService:
             action="DELIVER",
             entity_type="DELIVERY",
             entity_id=str(delivery.id),
-            before_state={"status": "READY"},
-            after_state={"status": "DELIVERED", "delivery_number": delivery.delivery_number},
+            metadata_={"status": "DELIVERED", "delivery_number": delivery.delivery_number},
         )
         db.add(audit)
 
@@ -506,8 +503,7 @@ class DeliveryService:
             action="CANCEL",
             entity_type="DELIVERY",
             entity_id=str(delivery.id),
-            before_state={"status": delivery.status},
-            after_state={"status": "CANCELLED"},
+            metadata_={"status": "CANCELLED"},
         )
         db.add(audit)
 

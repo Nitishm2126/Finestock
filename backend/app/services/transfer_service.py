@@ -128,8 +128,7 @@ class TransferService:
             action="CREATE",
             entity_type="TRANSFER",
             entity_id=str(transfer.id),
-            before_state=None,
-            after_state={"transfer_number": transfer_number, "status": "REQUESTED"},
+            metadata_={"transfer_number": transfer_number, "status": "REQUESTED"},
         )
         db.add(audit)
 
@@ -282,8 +281,7 @@ class TransferService:
             action="EXECUTE",
             entity_type="TRANSFER",
             entity_id=str(transfer.id),
-            before_state={"status": transfer.status},
-            after_state={"status": "DONE", "transfer_number": transfer.transfer_number},
+            metadata_={"status": "DONE", "transfer_number": transfer.transfer_number},
         )
         db.add(audit)
 
@@ -334,8 +332,7 @@ class TransferService:
             action="CANCEL",
             entity_type="TRANSFER",
             entity_id=str(transfer.id),
-            before_state={"status": transfer.status},
-            after_state={"status": "CANCELLED"},
+            metadata_={"status": "CANCELLED"},
         )
         db.add(audit)
 

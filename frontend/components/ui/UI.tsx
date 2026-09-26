@@ -8,35 +8,57 @@ interface StatusBadgeProps {
 }
 
 const statusMap: Record<string, { variant: string; dot?: string }> = {
-  // Inventory
+  // Inventory Risk
   Healthy: { variant: 'fs-badge-success' },
   'Low Stock': { variant: 'fs-badge-warning' },
   Critical: { variant: 'fs-badge-danger' },
   'Out of Stock': { variant: 'fs-badge-danger' },
-  // Operations
+  // Operations & Generic
   COMPLETED: { variant: 'fs-badge-success' },
   Completed: { variant: 'fs-badge-success' },
+  DONE: { variant: 'fs-badge-success' },
+  Done: { variant: 'fs-badge-success' },
+  DELIVERED: { variant: 'fs-badge-success' },
+  Delivered: { variant: 'fs-badge-success' },
   PENDING: { variant: 'fs-badge-warning' },
   Pending: { variant: 'fs-badge-warning' },
+  WAITING: { variant: 'fs-badge-warning' },
+  Waiting: { variant: 'fs-badge-warning' },
+  PARTIAL: { variant: 'fs-badge-warning' },
+  Partial: { variant: 'fs-badge-warning' },
+  PENDING_APPROVAL: { variant: 'fs-badge-warning' },
+  REQUESTED: { variant: 'fs-badge-warning' },
   PROCESSING: { variant: 'fs-badge-info' },
   Processing: { variant: 'fs-badge-info' },
   'In Transit': { variant: 'fs-badge-info' },
+  IN_TRANSIT: { variant: 'fs-badge-info' },
+  PICKING: { variant: 'fs-badge-info' },
+  PICKED: { variant: 'fs-badge-primary' },
+  PACKING: { variant: 'fs-badge-info' },
+  PACKED: { variant: 'fs-badge-primary' },
+  READY: { variant: 'fs-badge-success' },
   DRAFT: { variant: 'fs-badge-neutral' },
   Draft: { variant: 'fs-badge-neutral' },
   CANCELLED: { variant: 'fs-badge-neutral' },
   Cancelled: { variant: 'fs-badge-neutral' },
+  REJECTED: { variant: 'fs-badge-danger' },
   APPROVED: { variant: 'fs-badge-primary' },
+  // Alerts
+  INFO: { variant: 'fs-badge-info' },
+  WARNING: { variant: 'fs-badge-warning' },
+  CRITICAL: { variant: 'fs-badge-danger' },
   // Warehouses
   Active: { variant: 'fs-badge-success' },
   Inactive: { variant: 'fs-badge-neutral' },
   Attention: { variant: 'fs-badge-warning' },
-  // Users
-  'In Stock': { variant: 'fs-badge-success' },
   // Ledger
   RECEIPT: { variant: 'fs-badge-success' },
+  RECEIPT_IN: { variant: 'fs-badge-success' },
   DELIVERY: { variant: 'fs-badge-info' },
+  DELIVERY_OUT: { variant: 'fs-badge-info' },
   TRANSFER_IN: { variant: 'fs-badge-primary' },
   TRANSFER_OUT: { variant: 'fs-badge-primary' },
+  ADJUSTMENT: { variant: 'fs-badge-warning' },
   ADJUSTMENT_IN: { variant: 'fs-badge-warning' },
   ADJUSTMENT_OUT: { variant: 'fs-badge-warning' },
 };
