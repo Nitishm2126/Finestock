@@ -22,16 +22,58 @@ interface SidebarProps {
   activeItem?: string;
 }
 
-export const navigationItems = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, badge: 'Phase 1' },
-  { name: 'Products', href: '/products', icon: Package, badge: 'Phase 1' },
-  { name: 'Warehouses', href: '/warehouses', icon: Warehouse, badge: 'Phase 1' },
-  { name: 'Inventory', href: '/inventory', icon: Boxes, badge: 'Phase 1' },
-  { name: 'Operations', href: '#', icon: ArrowLeftRight, badge: 'Phase 4' },
-  { name: 'Ledger', href: '#', icon: BookOpenText, badge: 'Core' },
-  { name: 'Intelligence', href: '#', icon: Sparkles, badge: 'AI' },
-  { name: 'Users', href: '/users', icon: Users, badge: 'Phase 1' },
-  { name: 'Settings', href: '#', icon: Settings },
+interface NavItem {
+  name: string;
+  href: string;
+  icon: React.ElementType;
+  badge?: string;
+}
+
+interface NavSection {
+  label: string;
+  items: NavItem[];
+}
+
+export const navigationSections: NavSection[] = [
+  {
+    label: 'Overview',
+    items: [
+      { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+    ]
+  },
+  {
+    label: 'Inventory',
+    items: [
+      { name: 'Products', href: '/products', icon: Package },
+      { name: 'Warehouses', href: '/warehouses', icon: Warehouse },
+      { name: 'Stock', href: '/inventory', icon: Boxes },
+    ]
+  },
+  {
+    label: 'Control',
+    items: [
+      { name: 'Operations', href: '/operations', icon: ArrowLeftRight },
+      { name: 'Ledger', href: '/ledger', icon: BookOpenText },
+    ]
+  },
+  {
+    label: 'Intelligence',
+    items: [
+      { name: 'Inventory Health', href: '#', icon: Sparkles, badge: 'AI' },
+      { name: 'Predictive Radar', href: '#', icon: Sparkles, badge: 'AI' },
+      { name: 'AI Copilot', href: '#', icon: Sparkles, badge: 'AI' },
+      { name: 'Anomalies', href: '#', icon: Sparkles, badge: 'AI' },
+      { name: 'Simulator', href: '#', icon: Sparkles, badge: 'AI' },
+    ]
+  },
+  {
+    label: 'Administration',
+    items: [
+      { name: 'Users', href: '/users', icon: Users },
+      { name: 'Roles & Permissions', href: '#', icon: ShieldCheck },
+      { name: 'Settings', href: '#', icon: Settings },
+    ]
+  }
 ];
 
 export function Sidebar({ isOpen, onClose, activeItem = 'Dashboard' }: SidebarProps) {
@@ -79,44 +121,50 @@ export function Sidebar({ isOpen, onClose, activeItem = 'Dashboard' }: SidebarPr
 
         {/* Navigation list */}
         <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-1">
-          <div className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-            Platform Navigation
-          </div>
-          {navigationItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = item.name === activeItem;
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={`group flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
-                  isActive
-                    ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-sm'
-                    : 'text-slate-400 hover:bg-slate-800/70 hover:text-slate-200'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <Icon
-                    className={`h-4 w-4 transition-colors ${
-                      isActive ? 'text-emerald-400' : 'text-slate-400 group-hover:text-slate-200'
-                    }`}
-                  />
-                  <span>{item.name}</span>
-                </div>
-                {item.badge && (
-                  <span
-                    className={`rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-wide ${
-                      isActive
-                        ? 'bg-emerald-500/20 text-emerald-300'
-                        : 'bg-slate-800 text-slate-400 group-hover:bg-slate-700 group-hover:text-slate-300'
-                    }`}
-                  >
-                    {item.badge}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
+          {navigationSections.map((section, idx) => (
+            <div key={idx} className="mb-6 last:mb-0">
+              <div className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                {section.label}
+              </div>
+              <div className="space-y-1">
+                {section.items.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = item.name === activeItem || (activeItem === 'Inventory' && item.name === 'Stock');
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      className={`group flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
+                        isActive
+                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                          : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Icon
+                          className={`h-4 w-4 transition-colors ${
+                            isActive ? 'text-emerald-400' : 'text-slate-400 group-hover:text-slate-300'
+                          }`}
+                        />
+                        <span>{item.name}</span>
+                      </div>
+                      {item.badge && (
+                        <span
+                          className={`rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-wide ${
+                            isActive
+                              ? 'bg-emerald-500/20 text-emerald-300'
+                              : 'bg-slate-800 text-slate-400 group-hover:bg-slate-700 group-hover:text-slate-300'
+                          }`}
+                        >
+                          {item.badge}
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
         {/* Core Architecture Badge */}

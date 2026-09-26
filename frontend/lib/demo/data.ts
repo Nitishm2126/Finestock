@@ -120,3 +120,20 @@ export const DEMO_DASHBOARD_SUMMARY = {
     out: 3
   }
 };
+
+export const DEMO_OPERATIONS = [
+  { id: 'OP-2023-1001', type: 'RECEIPT', product: 'Wireless Keyboard', quantity: 120, source: 'Vendor A', destination: 'CHN-MAIN', warehouse: 'Chennai Main Warehouse', created_by: 'Fine Stock Admin', date: '2023-10-01T08:42:00Z', status: 'COMPLETED' },
+  { id: 'OP-2023-1002', type: 'TRANSFER', product: 'USB-C Cable', quantity: 40, source: 'CHN-MAIN', destination: 'BLR-01', warehouse: 'Multiple', created_by: 'John Supervisor', date: '2023-10-01T08:15:00Z', status: 'PROCESSING' },
+  { id: 'OP-2023-1003', type: 'ADJUSTMENT', product: 'Barcode Scanner', quantity: 5, source: 'N/A', destination: 'CHN-MAIN', warehouse: 'Chennai Main Warehouse', created_by: 'Fine Stock Admin', date: '2023-10-01T07:50:00Z', status: 'COMPLETED' },
+  { id: 'OP-2023-1004', type: 'RECEIPT', product: 'Thermal Printer', quantity: 30, source: 'Vendor B', destination: 'HYD-01', warehouse: 'Hyderabad Warehouse', created_by: 'Jane Manager', date: '2023-10-01T07:22:00Z', status: 'COMPLETED' },
+  { id: 'OP-2023-1005', type: 'DELIVERY', product: 'Laptop Stand', quantity: 18, source: 'BLR-01', destination: 'Customer X', warehouse: 'Bangalore Warehouse', created_by: 'Bob Staff', date: '2023-10-01T06:55:00Z', status: 'PENDING' },
+  { id: 'OP-2023-1006', type: 'DELIVERY', product: '27" IPS Monitor', quantity: 10, source: 'CHN-MAIN', destination: 'Customer Y', warehouse: 'Chennai Main Warehouse', created_by: 'Bob Staff', date: '2023-10-01T10:30:00Z', status: 'DRAFT' },
+];
+
+export const DEMO_LEDGER = [
+  { id: 'LEDG-001', timestamp: '2023-10-01T08:42:00Z', product: 'Wireless Keyboard', sku: 'ELEC-WKB-001', operation_id: 'OP-2023-1001', type: 'RECEIPT', quantity: 120, before: 8, after: 128, warehouse: 'Chennai Main Warehouse', location: 'CHN-A-01', performed_by: 'Fine Stock Admin', reason: 'PO-9921', reference: 'Vendor A' },
+  { id: 'LEDG-002', timestamp: '2023-10-01T08:15:00Z', product: 'USB-C Cable', sku: 'ACC-USBC-002', operation_id: 'OP-2023-1002', type: 'TRANSFER_OUT', quantity: -40, before: 54, after: 14, warehouse: 'Chennai Main Warehouse', location: 'CHN-B-01', performed_by: 'John Supervisor', reason: 'Stock rebalance', reference: 'TR-BLR-01' },
+  { id: 'LEDG-003', timestamp: '2023-10-01T07:50:00Z', product: 'Barcode Scanner', sku: 'SCAN-BAR-004', operation_id: 'OP-2023-1003', type: 'ADJUSTMENT_IN', quantity: 5, before: 1, after: 6, warehouse: 'Chennai Main Warehouse', location: 'CHN-C-01', performed_by: 'Fine Stock Admin', reason: 'Found during cycle count', reference: 'CC-2023-10' },
+  { id: 'LEDG-004', timestamp: '2023-10-01T07:22:00Z', product: 'Thermal Printer', sku: 'PRINT-THERM-005', operation_id: 'OP-2023-1004', type: 'RECEIPT', quantity: 30, before: 11, after: 41, warehouse: 'Hyderabad Warehouse', location: 'HYD-A-01', performed_by: 'Jane Manager', reason: 'PO-9922', reference: 'Vendor B' },
+  { id: 'LEDG-005', timestamp: '2023-10-01T06:55:00Z', product: 'Laptop Stand', sku: 'OFF-LST-003', operation_id: 'OP-2023-1005', type: 'DELIVERY', quantity: -18, before: 92, after: 74, warehouse: 'Bangalore Warehouse', location: 'BLR-B-01', performed_by: 'Bob Staff', reason: 'SO-1045', reference: 'Customer X' },
+];

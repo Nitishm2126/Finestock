@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/auth/AuthContext';
 import { AppShell } from '@/components/layout/AppShell';
 import { User, Role } from '@/types/user';
 import { userService } from '@/services/user.service';
-import { Loader2, Plus, Shield, X } from 'lucide-react';
+import { Loader2, Plus, Shield, X, Users, UserCheck, ShieldAlert, ShieldHalf, LayoutGrid, Search, Filter } from 'lucide-react';
 
 export default function UsersPage() {
   const router = useRouter();
@@ -178,6 +178,58 @@ export default function UsersPage() {
           </div>
         )}
 
+        {/* KPI Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5">
+            <div className="text-sm text-slate-400 mb-2">Total Users</div>
+            <div className="text-2xl font-bold text-white">{users.length}</div>
+            <div className="text-xs text-slate-500 mt-2 flex items-center gap-1">
+              <Users className="h-3 w-3" /> All registered accounts
+            </div>
+          </div>
+          <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5">
+            <div className="text-sm text-slate-400 mb-2">Active Users</div>
+            <div className="text-2xl font-bold text-emerald-400">{users.filter(u => u.is_active).length}</div>
+            <div className="text-xs text-slate-500 mt-2 flex items-center gap-1">
+              <UserCheck className="h-3 w-3" /> Currently active
+            </div>
+          </div>
+          <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5">
+            <div className="text-sm text-slate-400 mb-2">Administrators</div>
+            <div className="text-2xl font-bold text-purple-400">{users.filter(u => u.role.name === 'ADMIN').length}</div>
+            <div className="text-xs text-slate-500 mt-2 flex items-center gap-1">
+              <ShieldAlert className="h-3 w-3" /> Full access
+            </div>
+          </div>
+          <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5">
+            <div className="text-sm text-slate-400 mb-2">Warehouse Staff</div>
+            <div className="text-2xl font-bold text-blue-400">{users.filter(u => u.role.name.includes('WAREHOUSE')).length}</div>
+            <div className="text-xs text-slate-500 mt-2 flex items-center gap-1">
+              <ShieldHalf className="h-3 w-3" /> Operational staff
+            </div>
+          </div>
+        </div>
+
+        {/* Toolbar */}
+        <div className="flex flex-col sm:flex-row justify-between gap-4 items-center">
+          <div className="relative w-full sm:w-96">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+            <input 
+              type="text" 
+              placeholder="Search users..." 
+              className="bg-slate-900 border border-slate-800 rounded-lg pl-9 pr-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 w-full"
+            />
+          </div>
+          <div className="flex gap-2 w-full sm:w-auto">
+            <button className="flex-1 sm:flex-none flex justify-center items-center gap-2 px-4 py-2.5 border border-slate-800 bg-slate-900/60 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800 transition-colors">
+              <Filter className="h-4 w-4" /> Filter
+            </button>
+            <button className="flex-1 sm:flex-none flex justify-center items-center gap-2 px-4 py-2.5 border border-slate-800 bg-slate-900/60 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800 transition-colors">
+              <LayoutGrid className="h-4 w-4" /> View
+            </button>
+          </div>
+        </div>
+
         {/* Users Table */}
         <div className="rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden">
           {loading ? (
@@ -197,39 +249,44 @@ export default function UsersPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-800">
                   {users.map(u => (
-                    <tr key={u.id} className="hover:bg-slate-800/20 transition-colors">
+                    <tr key={u.id} className="hover:bg-slate-800/20 transition-colors cursor-pointer group">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 text-emerald-400 font-semibold border border-slate-700">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-tr from-emerald-600 to-teal-500 text-white font-semibold text-sm shadow-inner">
                             {u.first_name[0]}{u.last_name[0]}
                           </div>
                           <div>
-                            <div className="font-medium text-white">{u.first_name} {u.last_name}</div>
+                            <div className="font-medium text-white group-hover:text-emerald-400 transition-colors">{u.first_name} {u.last_name}</div>
                             <div className="text-xs text-slate-500">{u.email}</div>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-800 px-2.5 py-1 text-xs font-medium text-slate-300 border border-slate-700">
-                          <Shield className="h-3.5 w-3.5 text-emerald-500" />
-                          {u.role.name}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <Shield className={`h-4 w-4 ${u.role.name === 'ADMIN' ? 'text-purple-400' : 'text-emerald-500'}`} />
+                          <div>
+                            <div className="text-sm text-slate-200 font-medium">
+                              {u.role.name.replace(/_/g, ' ')}
+                            </div>
+                            <div className="text-[10px] text-slate-500">{u.role.description}</div>
+                          </div>
+                        </div>
                       </td>
                       <td className="px-6 py-4">
                         {u.is_active ? (
-                          <span className="inline-flex items-center gap-1.5 text-emerald-400 text-xs font-medium">
-                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-medium uppercase tracking-wider">
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                             Active
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 text-slate-500 text-xs font-medium">
-                            <span className="h-1.5 w-1.5 rounded-full bg-slate-600" />
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-800 text-slate-400 border border-slate-700 text-xs font-medium uppercase tracking-wider">
+                            <span className="h-1.5 w-1.5 rounded-full bg-slate-500" />
                             Inactive
                           </span>
                         )}
                       </td>
-                      <td className="px-6 py-4 text-slate-500 text-xs">
-                        {new Date(u.created_at).toLocaleDateString()}
+                      <td className="px-6 py-4 text-slate-500 text-sm">
+                        {new Date(u.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
                       </td>
                     </tr>
                   ))}
