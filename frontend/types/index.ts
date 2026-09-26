@@ -1,5 +1,7 @@
 // Fine Stock frontend core type definitions
 
+export * from './auth';
+
 export interface NavItem {
   name: string;
   href: string;

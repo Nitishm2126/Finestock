@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import {
   LayoutDashboard,
   Package,
@@ -21,7 +22,7 @@ interface SidebarProps {
 }
 
 export const navigationItems = [
-  { name: 'Dashboard', href: '#', icon: LayoutDashboard, badge: 'Phase 1' },
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, badge: 'Phase 1' },
   { name: 'Products', href: '#', icon: Package, badge: 'Phase 2' },
   { name: 'Warehouses', href: '#', icon: Warehouse, badge: 'Phase 2' },
   { name: 'Inventory', href: '#', icon: Boxes, badge: 'Phase 3' },
@@ -83,7 +84,7 @@ export function Sidebar({ isOpen, onClose, activeItem = 'Dashboard' }: SidebarPr
             const Icon = item.icon;
             const isActive = item.name === activeItem;
             return (
-              <a
+              <Link
                 key={item.name}
                 href={item.href}
                 className={`group flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
@@ -111,7 +112,7 @@ export function Sidebar({ isOpen, onClose, activeItem = 'Dashboard' }: SidebarPr
                     {item.badge}
                   </span>
                 )}
-              </a>
+              </Link>
             );
           })}
         </nav>

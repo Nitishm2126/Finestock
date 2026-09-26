@@ -8,7 +8,6 @@ import {
   Layers,
   Activity,
   CheckCircle2,
-  Clock,
 } from 'lucide-react';
 
 export default function HomePage() {
