@@ -59,6 +59,9 @@ export default function LoginPage() {
           <p className="mt-2 text-sm text-slate-400">
             Sign in to access your enterprise ledger &amp; operational console
           </p>
+          <div className="mt-4 inline-flex items-center rounded-full bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-400 border border-amber-500/20">
+            Demo Environment
+          </div>
         </div>
 
         {/* Login Form Container */}

@@ -75,7 +75,13 @@ export default function DashboardPage() {
             <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
               Welcome back, {user.first_name} {user.last_name}
             </h2>
-            <p className="mt-2 text-sm sm:text-base text-slate-300 leading-relaxed">
+            <div className="mt-2 flex items-center gap-3">
+              <span className="inline-flex items-center rounded-md bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-400 ring-1 ring-inset ring-emerald-500/20">
+                {user.role}
+              </span>
+              <span className="text-sm text-slate-400">{user.email}</span>
+            </div>
+            <p className="mt-3 text-sm sm:text-base text-slate-300 leading-relaxed">
               Here&apos;s a summary of your organization&apos;s inventory.
             </p>
           </div>

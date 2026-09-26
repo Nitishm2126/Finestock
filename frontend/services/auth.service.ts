@@ -1,4 +1,5 @@
 import { AuthResponse, CurrentUserResponse, LoginPayload, RegisterPayload } from '@/types';
+import { isDemoLogin, handleDemoLogin, isDemoToken, handleDemoGetMe } from '@/lib/auth/demoAuth';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 const TOKEN_STORAGE_KEY = 'fine_stock_access_token';
@@ -46,6 +47,17 @@ export async function register(payload: RegisterPayload): Promise<AuthResponse> 
 }
 
 export async function login(payload: LoginPayload): Promise<AuthResponse> {
+  // DEMO ONLY interception
+  if (payload.email === 'admin@finestock.demo') {
+    if (isDemoLogin(payload)) {
+      const data = handleDemoLogin();
+      tokenStorage.set(data.access_token);
+      return data;
+    } else {
+      throw new Error('Invalid demo credentials.');
+    }
+  }
+
   const res = await fetch(`${API_BASE_URL}/auth/login`, {
     method: 'POST',
     headers: {
@@ -71,6 +83,11 @@ export async function getMe(): Promise<CurrentUserResponse> {
   const token = tokenStorage.get();
   if (!token) {
     throw new Error('No authentication token found');
+  }
+
+  // DEMO ONLY interception
+  if (isDemoToken(token)) {
+    return handleDemoGetMe();
   }
 
   const res = await fetch(`${API_BASE_URL}/auth/me`, {
