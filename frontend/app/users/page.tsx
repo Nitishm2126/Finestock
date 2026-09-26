@@ -1,308 +1,328 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { AppShell } from '@/components/layout/AppShell';
-import { User, Role } from '@/types/user';
-import { userService } from '@/services/user.service';
-import { Loader2, Plus, Shield, X, Users, UserCheck, ShieldAlert, ShieldHalf, LayoutGrid, Search, Filter } from 'lucide-react';
+import { StatusBadge, MetricCard, EmptyState } from '@/components/ui/UI';
+import { Drawer, Modal } from '@/components/ui/Overlay';
+import { useToast } from '@/lib/ui/ToastProvider';
+import { Users, Plus, Search, Download, Shield } from 'lucide-react';
+import { demoGetUsers, demoCreateUser, demoDeactivateUser } from '@/lib/demo/store';
+import { fetchUsers } from '@/services/user.service';
+import { DEMO_ROLES } from '@/lib/demo/data';
+
+const isDemo = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type UserEntry = any;
+
+const ROLE_LABELS: Record<string, string> = {
+  ADMIN: 'Admin',
+  INVENTORY_MANAGER: 'Inventory Manager',
+  WAREHOUSE_SUPERVISOR: 'Warehouse Supervisor',
+  WAREHOUSE_STAFF: 'Warehouse Staff',
+};
+
+const ROLE_PERMISSIONS: Record<string, string[]> = {
+  ADMIN: ['Full system access', 'User management', 'All modules', 'Settings & Configuration'],
+  INVENTORY_MANAGER: ['Products', 'Inventory', 'Operations', 'Reports', 'Ledger view'],
+  WAREHOUSE_SUPERVISOR: ['Inventory', 'Operations', 'Warehouse management', 'Ledger view'],
+  WAREHOUSE_STAFF: ['Inventory view', 'Operations execution', 'Basic reports'],
+};
+
+function Avatar({ name, size = 'md' }: { name: string; size?: 'sm' | 'md' }) {
+  const initials = name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+  const colors = ['#3157D5', '#16866A', '#C88719', '#D94A4A', '#3478C8'];
+  const colorIdx = name.charCodeAt(0) % colors.length;
+  const dim = size === 'sm' ? 30 : 36;
+  return (
+    <div
+      style={{ width: dim, height: dim, borderRadius: '50%', background: colors[colorIdx], color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size === 'sm' ? 11 : 13, fontWeight: 700, flexShrink: 0 }}
+    >
+      {initials}
+    </div>
+  );
+}
 
 export default function UsersPage() {
   const router = useRouter();
-  const { user, isLoading, isAuthenticated } = useAuth();
-  
-  const [users, setUsers] = useState<User[]>([]);
-  const [roles, setRoles] = useState<Role[]>([]);
+  const { token, isLoading: authLoading, isAuthenticated } = useAuth();
+  const toast = useToast();
+
+  const [users, setUsers] = useState<UserEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  const [isAdding, setIsAdding] = useState(false);
-  const [formData, setFormData] = useState({
-    email: '',
-    first_name: '',
-    last_name: '',
-    password: '',
-    role_id: '',
-  });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState('All');
+  const [selected, setSelected] = useState<UserEntry | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [form, setForm] = useState({ first_name: '', last_name: '', email: '', role_id: 'role-4', password: '' });
+  const [formLoading, setFormLoading] = useState(false);
 
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push('/login');
-    }
-  }, [isLoading, isAuthenticated, router]);
+  useEffect(() => { if (!authLoading && !isAuthenticated) router.push('/login'); }, [authLoading, isAuthenticated, router]);
 
-  const fetchData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [usersRes, rolesRes] = await Promise.all([
-        userService.getUsers(),
-        userService.getRoles()
-      ]);
-      setUsers(usersRes.users);
-      setRoles(rolesRes);
-    } catch (error) {
-      console.error('Failed to fetch data:', error);
+      if (isDemo) {
+        setUsers(demoGetUsers());
+      } else {
+        const data = await fetchUsers(token!);
+        setUsers(data);
+      }
+    } catch {
+      toast.error('Unable to load users', 'Check the connection and try again.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [token, toast]);
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      fetchData();
-    }
-  }, [isAuthenticated]);
+  useEffect(() => { if (isAuthenticated) loadData(); }, [isAuthenticated, loadData]);
 
-  const handleCreateUser = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const filtered = users.filter(u => {
+    const name = `${u.first_name} ${u.last_name}`.toLowerCase();
+    const matchSearch = !searchQuery || name.includes(searchQuery.toLowerCase()) || u.email.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchRole = roleFilter === 'All' || u.role?.name === roleFilter;
+    return matchSearch && matchRole;
+  });
+
+  const handleCreate = async () => {
+    if (!form.first_name || !form.email) { toast.warning('Name and email are required'); return; }
+    setFormLoading(true);
     try {
-      await userService.createUser(formData);
-      setIsAdding(false);
-      setFormData({ email: '', first_name: '', last_name: '', password: '', role_id: '' });
-      fetchData();
-    } catch (error) {
-      alert((error as Error).message);
+      const role = DEMO_ROLES.find(r => r.id === form.role_id);
+      if (isDemo) {
+        demoCreateUser({ ...form, role, role_name: role?.name });
+        toast.success('User created', `${form.first_name} ${form.last_name} has been added.`);
+        setCreateOpen(false);
+        setForm({ first_name: '', last_name: '', email: '', role_id: 'role-4', password: '' });
+        loadData();
+      }
+    } catch {
+      toast.error('Failed to create user');
+    } finally {
+      setFormLoading(false);
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950">
-        <Loader2 className="h-8 w-8 animate-spin text-emerald-400 mx-auto" />
-      </div>
-    );
-  }
+  const handleDeactivate = (u: UserEntry) => {
+    if (isDemo) {
+      demoDeactivateUser(u.id);
+      toast.success('User deactivated', `${u.first_name} ${u.last_name} has been deactivated.`);
+      if (drawerOpen) setDrawerOpen(false);
+      loadData();
+    }
+  };
 
-  if (!user) return null;
+  const exportCSV = () => {
+    const rows = [['Name', 'Email', 'Role', 'Status', 'Joined']];
+    filtered.forEach(u => rows.push([`${u.first_name} ${u.last_name}`, u.email, u.role?.name || '', u.is_active ? 'Active' : 'Inactive', new Date(u.created_at).toLocaleDateString()]));
+    const csv = rows.map(r => r.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'users.csv'; a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Export complete', 'users.csv downloaded.');
+  };
+
+  if (authLoading) return null;
+
+  const ROLES_FILTER = ['All', 'ADMIN', 'INVENTORY_MANAGER', 'WAREHOUSE_SUPERVISOR', 'WAREHOUSE_STAFF'];
 
   return (
-    <AppShell title="User Management" activeItem="Users">
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-white">Users & Roles</h1>
-            <p className="text-sm text-slate-400 mt-1">Manage organization access and role-based permissions.</p>
+    <AppShell title="Users">
+      <div className="fs-page-inner space-y-6">
+
+        {/* Header */}
+        <div>
+          <p className="text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Administration / Users</p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Users & Access</h1>
+              <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Manage team members and platform access.</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button className="fs-btn-secondary" onClick={exportCSV}><Download className="h-4 w-4" /> Export</button>
+              <button className="fs-btn-primary" onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4" /> Add User</button>
+            </div>
           </div>
-          {user.role === 'ADMIN' && (
-            <button
-              onClick={() => setIsAdding(true)}
-              className="flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600 transition-colors"
-            >
-              <Plus className="h-4 w-4" />
-              Add User
-            </button>
-          )}
         </div>
 
-        {isAdding && (
-          <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-white">Create New User</h3>
-              <button onClick={() => setIsAdding(false)} className="text-slate-400 hover:text-white">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <form onSubmit={handleCreateUser} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">First Name</label>
-                <input
-                  required
-                  type="text"
-                  className="w-full rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2 text-sm text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
-                  value={formData.first_name}
-                  onChange={e => setFormData({ ...formData, first_name: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Last Name</label>
-                <input
-                  required
-                  type="text"
-                  className="w-full rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2 text-sm text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
-                  value={formData.last_name}
-                  onChange={e => setFormData({ ...formData, last_name: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Email</label>
-                <input
-                  required
-                  type="email"
-                  className="w-full rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2 text-sm text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
-                  value={formData.email}
-                  onChange={e => setFormData({ ...formData, email: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Password</label>
-                <input
-                  required
-                  type="password"
-                  minLength={8}
-                  className="w-full rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2 text-sm text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
-                  value={formData.password}
-                  onChange={e => setFormData({ ...formData, password: e.target.value })}
-                />
-              </div>
-              <div className="md:col-span-2">
-                <label className="block text-xs font-medium text-slate-400 mb-1">Role</label>
-                <select
-                  required
-                  className="w-full rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2 text-sm text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
-                  value={formData.role_id}
-                  onChange={e => setFormData({ ...formData, role_id: e.target.value })}
-                >
-                  <option value="">Select a role...</option>
-                  {roles.map(r => (
-                    <option key={r.id} value={r.id}>{r.name} - {r.description}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="md:col-span-2 flex justify-end gap-3 mt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsAdding(false)}
-                  className="rounded-lg px-4 py-2 text-sm font-medium text-slate-300 hover:text-white"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="rounded-lg bg-emerald-500 px-6 py-2 text-sm font-semibold text-white hover:bg-emerald-600 transition-colors"
-                >
-                  Create User
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        {/* KPI Cards */}
+        {/* Metrics */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5">
-            <div className="text-sm text-slate-400 mb-2">Total Users</div>
-            <div className="text-2xl font-bold text-white">{users.length}</div>
-            <div className="text-xs text-slate-500 mt-2 flex items-center gap-1">
-              <Users className="h-3 w-3" /> All registered accounts
-            </div>
-          </div>
-          <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5">
-            <div className="text-sm text-slate-400 mb-2">Active Users</div>
-            <div className="text-2xl font-bold text-emerald-400">{users.filter(u => u.is_active).length}</div>
-            <div className="text-xs text-slate-500 mt-2 flex items-center gap-1">
-              <UserCheck className="h-3 w-3" /> Currently active
-            </div>
-          </div>
-          <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5">
-            <div className="text-sm text-slate-400 mb-2">Administrators</div>
-            <div className="text-2xl font-bold text-purple-400">{users.filter(u => u.role.name === 'ADMIN').length}</div>
-            <div className="text-xs text-slate-500 mt-2 flex items-center gap-1">
-              <ShieldAlert className="h-3 w-3" /> Full access
-            </div>
-          </div>
-          <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5">
-            <div className="text-sm text-slate-400 mb-2">Warehouse Staff</div>
-            <div className="text-2xl font-bold text-blue-400">{users.filter(u => u.role.name.includes('WAREHOUSE')).length}</div>
-            <div className="text-xs text-slate-500 mt-2 flex items-center gap-1">
-              <ShieldHalf className="h-3 w-3" /> Operational staff
-            </div>
-          </div>
+          <MetricCard label="Total Users" value={users.length} icon={<Users className="h-4 w-4" />} />
+          <MetricCard label="Active" value={users.filter(u => u.is_active).length} color="success" />
+          <MetricCard label="Administrators" value={users.filter(u => u.role?.name === 'ADMIN').length} color="primary" />
+          <MetricCard label="Warehouse Staff" value={users.filter(u => u.role?.name?.includes('WAREHOUSE')).length} />
         </div>
 
         {/* Toolbar */}
-        <div className="flex flex-col sm:flex-row justify-between gap-4 items-center">
-          <div className="relative w-full sm:w-96">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-            <input 
-              type="text" 
-              placeholder="Search users..." 
-              className="bg-slate-900 border border-slate-800 rounded-lg pl-9 pr-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 w-full"
-            />
+        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: 'var(--text-muted)' }} />
+            <input type="text" placeholder="Search by name or email…" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="fs-input pl-9" />
           </div>
-          <div className="flex gap-2 w-full sm:w-auto">
-            <button className="flex-1 sm:flex-none flex justify-center items-center gap-2 px-4 py-2.5 border border-slate-800 bg-slate-900/60 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800 transition-colors">
-              <Filter className="h-4 w-4" /> Filter
-            </button>
-            <button className="flex-1 sm:flex-none flex justify-center items-center gap-2 px-4 py-2.5 border border-slate-800 bg-slate-900/60 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800 transition-colors">
-              <LayoutGrid className="h-4 w-4" /> View
-            </button>
+          <div className="flex gap-1 flex-wrap">
+            {ROLES_FILTER.map(r => (
+              <button
+                key={r}
+                onClick={() => setRoleFilter(r)}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                style={{
+                  background: roleFilter === r ? 'var(--primary)' : 'var(--surface)',
+                  color: roleFilter === r ? '#fff' : 'var(--text-secondary)',
+                  border: `1px solid ${roleFilter === r ? 'var(--primary)' : 'var(--border)'}`,
+                }}
+              >
+                {r === 'All' ? 'All Roles' : ROLE_LABELS[r] || r}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Users Table */}
-        <div className="rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden">
+        {/* Table */}
+        <div className="fs-surface overflow-hidden">
           {loading ? (
-            <div className="p-8 text-center">
-              <Loader2 className="h-6 w-6 animate-spin text-emerald-500 mx-auto" />
-            </div>
+            <div className="p-12 text-center" style={{ color: 'var(--text-muted)' }}>Loading users…</div>
+          ) : filtered.length === 0 ? (
+            <EmptyState icon={<Users className="h-10 w-10" />} title="No users found" description="Add team members to get started." action={<button className="fs-btn-primary" onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4" /> Add User</button>} />
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm text-slate-300">
-                <thead className="bg-slate-800/50 text-xs uppercase text-slate-400">
+              <table className="fs-table">
+                <thead>
                   <tr>
-                    <th className="px-6 py-4 font-semibold">User</th>
-                    <th className="px-6 py-4 font-semibold">Role</th>
-                    <th className="px-6 py-4 font-semibold">Status</th>
-                    <th className="px-6 py-4 font-semibold">Joined</th>
+                    <th>User</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Joined</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800">
-                  {users.map(u => (
-                    <tr key={u.id} className="hover:bg-slate-800/20 transition-colors cursor-pointer group">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-tr from-emerald-600 to-teal-500 text-white font-semibold text-sm shadow-inner">
-                            {u.first_name[0]}{u.last_name[0]}
-                          </div>
+                <tbody>
+                  {filtered.map(u => (
+                    <tr key={u.id}>
+                      <td>
+                        <button className="flex items-center gap-3 text-left" onClick={() => { setSelected(u); setDrawerOpen(true); }}>
+                          <Avatar name={`${u.first_name} ${u.last_name}`} size="sm" />
                           <div>
-                            <div className="font-medium text-white group-hover:text-emerald-400 transition-colors">{u.first_name} {u.last_name}</div>
-                            <div className="text-xs text-slate-500">{u.email}</div>
+                            <p className="font-medium hover:underline text-sm" style={{ color: 'var(--text-primary)' }}>{u.first_name} {u.last_name}</p>
+                            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{u.email}</p>
                           </div>
+                        </button>
+                      </td>
+                      <td>
+                        <span className="text-xs font-medium px-2.5 py-1 rounded-lg" style={{ background: 'var(--surface-muted)', color: 'var(--text-secondary)' }}>
+                          {ROLE_LABELS[u.role?.name] || u.role?.name || 'N/A'}
+                        </span>
+                      </td>
+                      <td><StatusBadge status={u.is_active ? 'Active' : 'Inactive'} size="sm" /></td>
+                      <td style={{ color: 'var(--text-muted)', fontSize: 13 }}>{new Date(u.created_at).toLocaleDateString()}</td>
+                      <td>
+                        <div className="flex gap-1">
+                          <button className="fs-btn-secondary" style={{ padding: '4px 8px', fontSize: 12 }} onClick={() => { setSelected(u); setDrawerOpen(true); }}>View</button>
+                          {u.is_active && <button className="fs-btn-secondary" style={{ padding: '4px 8px', fontSize: 12 }} onClick={() => handleDeactivate(u)}>Deactivate</button>}
                         </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-1.5">
-                          <Shield className={`h-4 w-4 ${u.role.name === 'ADMIN' ? 'text-purple-400' : 'text-emerald-500'}`} />
-                          <div>
-                            <div className="text-sm text-slate-200 font-medium">
-                              {u.role.name.replace(/_/g, ' ')}
-                            </div>
-                            <div className="text-[10px] text-slate-500">{u.role.description}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        {u.is_active ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-medium uppercase tracking-wider">
-                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                            Active
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-800 text-slate-400 border border-slate-700 text-xs font-medium uppercase tracking-wider">
-                            <span className="h-1.5 w-1.5 rounded-full bg-slate-500" />
-                            Inactive
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-slate-500 text-sm">
-                        {new Date(u.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
                       </td>
                     </tr>
                   ))}
-                  {users.length === 0 && (
-                    <tr>
-                      <td colSpan={4} className="px-6 py-8 text-center text-slate-500">
-                        No users found in this organization.
-                      </td>
-                    </tr>
-                  )}
                 </tbody>
               </table>
             </div>
           )}
         </div>
       </div>
+
+      {/* User Drawer */}
+      <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title={selected ? `${selected.first_name} ${selected.last_name}` : ''} subtitle={selected?.email} width={520}>
+        {selected && (
+          <div className="space-y-5">
+            {/* Profile */}
+            <div className="flex items-center gap-4 p-4 rounded-xl" style={{ background: 'var(--surface-muted)' }}>
+              <Avatar name={`${selected.first_name} ${selected.last_name}`} size="md" />
+              <div>
+                <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>{selected.first_name} {selected.last_name}</p>
+                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{selected.email}</p>
+                <StatusBadge status={selected.is_active ? 'Active' : 'Inactive'} size="sm" />
+              </div>
+            </div>
+
+            {/* Role */}
+            <div className="p-4 rounded-xl" style={{ background: 'var(--surface-muted)' }}>
+              <p className="text-xs font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>ROLE</p>
+              <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{ROLE_LABELS[selected.role?.name] || selected.role?.name}</p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{selected.role?.description}</p>
+            </div>
+
+            {/* Permissions */}
+            <div>
+              <p className="text-xs font-semibold mb-3" style={{ color: 'var(--text-muted)' }}>PERMISSIONS</p>
+              <div className="space-y-1.5">
+                {(ROLE_PERMISSIONS[selected.role?.name] || []).map(perm => (
+                  <div key={perm} className="flex items-center gap-2 p-2.5 rounded-lg" style={{ background: 'var(--success-soft)' }}>
+                    <Shield className="h-3.5 w-3.5 flex-shrink-0" style={{ color: 'var(--success)' }} />
+                    <span className="text-sm" style={{ color: 'var(--success)' }}>{perm}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Details */}
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { label: 'User ID', value: selected.id },
+                { label: 'Joined', value: new Date(selected.created_at).toLocaleDateString() },
+              ].map(f => (
+                <div key={f.label} className="p-3 rounded-xl" style={{ background: 'var(--surface-muted)' }}>
+                  <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>{f.label}</p>
+                  <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{f.value}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Actions */}
+            {selected.is_active && (
+              <button className="fs-btn-danger w-full" onClick={() => handleDeactivate(selected)}>Deactivate User</button>
+            )}
+          </div>
+        )}
+      </Drawer>
+
+      {/* Create User Modal */}
+      <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Add User" subtitle="Create a new team member account">
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>First Name *</label>
+              <input className="fs-input" value={form.first_name} onChange={e => setForm({ ...form, first_name: e.target.value })} placeholder="Jane" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Last Name</label>
+              <input className="fs-input" value={form.last_name} onChange={e => setForm({ ...form, last_name: e.target.value })} placeholder="Smith" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Email *</label>
+            <input type="email" className="fs-input" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="jane@company.com" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Role</label>
+            <select className="fs-select" value={form.role_id} onChange={e => setForm({ ...form, role_id: e.target.value })}>
+              {DEMO_ROLES.map(r => <option key={r.id} value={r.id}>{ROLE_LABELS[r.name] || r.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Password</label>
+            <input type="password" className="fs-input" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder="Min. 8 characters" />
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button className="fs-btn-secondary flex-1" onClick={() => setCreateOpen(false)}>Cancel</button>
+            <button className="fs-btn-primary flex-1" onClick={handleCreate} disabled={!form.first_name || !form.email || formLoading}>
+              {formLoading ? 'Creating…' : 'Create User'}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </AppShell>
   );
 }

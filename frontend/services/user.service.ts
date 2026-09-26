@@ -72,3 +72,10 @@ class UserService {
 }
 
 export const userService = new UserService();
+
+// Convenience function export
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function fetchUsers(_token?: string): Promise<any[]> {
+  const result = await userService.getUsers();
+  return result.users;
+}

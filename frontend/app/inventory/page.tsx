@@ -1,157 +1,201 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { AppShell } from '@/components/layout/AppShell';
-import { Loader2, Boxes, Search, Filter, Download } from 'lucide-react';
+import { StatusBadge, MetricCard } from '@/components/ui/UI';
+import { Drawer } from '@/components/ui/Overlay';
+import { useToast } from '@/lib/ui/ToastProvider';
+import { Boxes, Search, Filter, Download } from 'lucide-react';
 import { fetchInventory, StockPosition } from '@/services/inventory.service';
+
+const isDemo = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
 
 export default function InventoryPage() {
   const router = useRouter();
   const { token, isLoading: authLoading, isAuthenticated } = useAuth();
+  const toast = useToast();
+
   const [positions, setPositions] = useState<StockPosition[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [selected, setSelected] = useState<StockPosition | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) router.push('/login');
-  }, [authLoading, isAuthenticated, router]);
+  useEffect(() => { if (!authLoading && !isAuthenticated) router.push('/login'); }, [authLoading, isAuthenticated, router]);
 
-  useEffect(() => {
-    async function loadData() {
-      if (!token) return;
-      try {
-        setLoading(true);
-        const data = await fetchInventory(token);
-        setPositions(data);
-      } catch (err) {
-        setError((err as Error).message);
-      } finally {
-        setLoading(false);
-      }
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await fetchInventory(token!);
+      setPositions(data);
+    } catch {
+      toast.error('Unable to load inventory', 'Check the connection and try again.');
+    } finally {
+      setLoading(false);
     }
-    if (isAuthenticated) loadData();
-  }, [isAuthenticated, token]);
+  }, [token, toast]);
 
-  if (authLoading || (loading && !positions.length)) return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-950">
-      <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
-    </div>
-  );
+  useEffect(() => { if (isAuthenticated) loadData(); }, [isAuthenticated, loadData]);
+
+  const filtered = positions.filter(p => {
+    const matchSearch = !searchQuery || p.product_name.toLowerCase().includes(searchQuery.toLowerCase()) || p.sku.toLowerCase().includes(searchQuery.toLowerCase()) || p.warehouse_name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchStatus = statusFilter === 'All' || (statusFilter === 'In Stock' && p.available_quantity > 0) || (statusFilter === 'Out of Stock' && p.available_quantity === 0);
+    return matchSearch && matchStatus;
+  });
+
+  const totalPhysical = positions.reduce((a, p) => a + p.quantity, 0);
+  const totalReserved = positions.reduce((a, p) => a + p.reserved_quantity, 0);
+  const totalAvailable = positions.reduce((a, p) => a + p.available_quantity, 0);
+
+  const exportCSV = () => {
+    const rows = [['Product', 'SKU', 'Warehouse', 'Location', 'Physical', 'Reserved', 'Available', 'Status']];
+    filtered.forEach(p => rows.push([p.product_name, p.sku, p.warehouse_name, p.location_name, String(p.quantity), String(p.reserved_quantity), String(p.available_quantity), p.available_quantity > 0 ? 'In Stock' : 'Out of Stock']));
+    const csv = rows.map(r => r.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'inventory.csv'; a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Export complete', 'inventory.csv downloaded.');
+  };
+
+  if (authLoading) return null;
+
+  const isD = isDemo;
+  void isD;
 
   return (
-    <AppShell title="Inventory" activeItem="Inventory">
-      <div className="space-y-6">
-        {/* Header Section */}
-        <div className="relative overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/80 p-6 sm:p-8 shadow-xl">
-          <div className="absolute right-0 top-0 opacity-10 pointer-events-none">
-            <Boxes className="w-64 h-64 -mt-10 -mr-10 text-emerald-500" />
-          </div>
-          <div className="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <AppShell title="Inventory">
+      <div className="fs-page-inner space-y-6">
+
+        {/* Header */}
+        <div>
+          <p className="text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Inventory / Stock</p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-bold text-white tracking-tight">Inventory</h2>
-              <p className="text-sm text-slate-400 mt-1 max-w-xl">Real-time stock visibility across every warehouse and location.</p>
+              <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Inventory</h1>
+              <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Real-time stock visibility across your warehouse network.</p>
             </div>
-            <div className="flex items-center gap-3 w-full sm:w-auto">
-              <button className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-lg font-medium transition-colors border border-slate-700">
-                <Download className="h-4 w-4" /> Export
-              </button>
-            </div>
+            <button className="fs-btn-secondary" onClick={exportCSV}><Download className="h-4 w-4" /> Export</button>
           </div>
         </div>
 
-        {/* Summary Cards */}
+        {/* Metrics */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5">
-            <div className="text-sm text-slate-400 mb-2">Physical Stock</div>
-            <div className="text-xl font-bold text-white">{positions.reduce((acc, p) => acc + p.quantity, 0).toLocaleString()}</div>
-          </div>
-          <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5">
-            <div className="text-sm text-slate-400 mb-2">Reserved Stock</div>
-            <div className="text-xl font-bold text-amber-400">{positions.reduce((acc, p) => acc + p.reserved_quantity, 0).toLocaleString()}</div>
-          </div>
-          <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5">
-            <div className="text-sm text-slate-400 mb-2">Available Stock</div>
-            <div className="text-xl font-bold text-emerald-400">{positions.reduce((acc, p) => acc + p.available_quantity, 0).toLocaleString()}</div>
-          </div>
-          <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5">
-            <div className="text-sm text-slate-400 mb-2">Low Stock</div>
-            <div className="text-xl font-bold text-orange-400">12</div>
-          </div>
-          <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5">
-            <div className="text-sm text-slate-400 mb-2">Out of Stock</div>
-            <div className="text-xl font-bold text-red-400">3</div>
-          </div>
+          <MetricCard label="Physical Stock" value={totalPhysical.toLocaleString()} icon={<Boxes className="h-4 w-4" />} />
+          <MetricCard label="Reserved" value={totalReserved.toLocaleString()} color="warning" />
+          <MetricCard label="Available" value={totalAvailable.toLocaleString()} color="success" />
+          <MetricCard label="Low Stock" value={positions.filter(p => p.available_quantity > 0 && p.available_quantity <= 15).length} color="warning" />
+          <MetricCard label="Out of Stock" value={positions.filter(p => p.available_quantity === 0).length} color="danger" />
         </div>
 
         {/* Toolbar */}
-        <div className="flex flex-col sm:flex-row justify-between gap-4 items-center">
-          <div className="relative w-full sm:w-96">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-            <input 
-              type="text" 
-              placeholder="Search by product, SKU or location..." 
-              className="bg-slate-900 border border-slate-800 rounded-lg pl-9 pr-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 w-full"
-            />
+        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: 'var(--text-muted)' }} />
+            <input type="text" placeholder="Search by product, SKU or location…" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="fs-input pl-9" />
           </div>
-          <div className="flex gap-2 w-full sm:w-auto">
-            <button className="flex-1 sm:flex-none flex justify-center items-center gap-2 px-4 py-2.5 border border-slate-800 bg-slate-900/60 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800 transition-colors">
-              <Filter className="h-4 w-4" /> Filters
-            </button>
+          <div className="flex gap-2">
+            {['All', 'In Stock', 'Out of Stock'].map(s => (
+              <button
+                key={s}
+                onClick={() => setStatusFilter(s)}
+                className="fs-btn-secondary"
+                style={{
+                  padding: '6px 12px',
+                  fontSize: 13,
+                  background: statusFilter === s ? 'var(--primary)' : 'var(--surface)',
+                  color: statusFilter === s ? '#fff' : 'var(--text-secondary)',
+                  borderColor: statusFilter === s ? 'var(--primary)' : 'var(--border)',
+                }}
+              >
+                {s}
+              </button>
+            ))}
+            <button className="fs-btn-secondary"><Filter className="h-4 w-4" /> More Filters</button>
           </div>
         </div>
 
-        {error && <div className="text-red-400 bg-red-400/5 border border-red-400/20 p-4 rounded-lg text-sm text-center">{error}</div>}
-
-        <div className="bg-slate-900/60 border border-slate-800 rounded-xl overflow-hidden shadow-sm">
-          <table className="w-full text-left text-sm text-slate-300">
-            <thead className="bg-slate-950/80 text-xs uppercase text-slate-500 border-b border-slate-800">
-              <tr>
-                <th className="px-6 py-4 font-semibold tracking-wider">Product</th>
-                <th className="px-6 py-4 font-semibold tracking-wider">Location</th>
-                <th className="px-6 py-4 font-semibold tracking-wider text-right">Physical</th>
-                <th className="px-6 py-4 font-semibold tracking-wider text-right">Reserved</th>
-                <th className="px-6 py-4 font-semibold tracking-wider text-right">Available</th>
-                <th className="px-6 py-4 font-semibold tracking-wider text-center">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {positions.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
-                    No inventory found.
-                  </td>
-                </tr>
-              ) : (
-                positions.map((p, idx) => (
-                  <tr key={idx} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors cursor-pointer group">
-                    <td className="px-6 py-4">
-                      <div className="font-medium text-white group-hover:text-emerald-400 transition-colors">{p.product_name}</div>
-                      <div className="text-xs font-mono text-emerald-400/70">{p.sku}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-slate-300 font-medium">{p.warehouse_name}</div>
-                      <div className="text-xs text-slate-500">{p.location_name}</div>
-                    </td>
-                    <td className="px-6 py-4 text-right font-medium text-white">{p.quantity}</td>
-                    <td className="px-6 py-4 text-right text-amber-400">{p.reserved_quantity}</td>
-                    <td className="px-6 py-4 text-right font-medium text-emerald-400">{p.available_quantity}</td>
-                    <td className="px-6 py-4 text-center">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                        p.available_quantity > 0 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'
-                      }`}>
-                        <span className={`h-1.5 w-1.5 rounded-full ${p.available_quantity > 0 ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                        {p.available_quantity > 0 ? 'In Stock' : 'Out of Stock'}
-                      </span>
-                    </td>
+        {/* Table */}
+        <div className="fs-surface overflow-hidden">
+          {loading ? (
+            <div className="p-12 text-center" style={{ color: 'var(--text-muted)' }}>Loading inventory…</div>
+          ) : filtered.length === 0 ? (
+            <div className="p-12 text-center" style={{ color: 'var(--text-muted)' }}>No inventory records match your search.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="fs-table">
+                <thead>
+                  <tr>
+                    <th>Product</th>
+                    <th>Warehouse / Location</th>
+                    <th className="text-right">Physical</th>
+                    <th className="text-right">Reserved</th>
+                    <th className="text-right">Available</th>
+                    <th>Status</th>
+                    <th>Actions</th>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                </thead>
+                <tbody>
+                  {filtered.map((p, idx) => (
+                    <tr key={idx}>
+                      <td>
+                        <button className="text-left" onClick={() => { setSelected(p); setDrawerOpen(true); }}>
+                          <p className="font-medium hover:underline" style={{ color: 'var(--text-primary)' }}>{p.product_name}</p>
+                          <p className="text-xs font-mono" style={{ color: 'var(--primary)' }}>{p.sku}</p>
+                        </button>
+                      </td>
+                      <td>
+                        <p className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>{p.warehouse_name}</p>
+                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{p.location_name}</p>
+                      </td>
+                      <td className="text-right font-semibold" style={{ color: 'var(--text-primary)' }}>{p.quantity}</td>
+                      <td className="text-right" style={{ color: 'var(--warning)' }}>{p.reserved_quantity}</td>
+                      <td className="text-right font-semibold" style={{ color: 'var(--success)' }}>{p.available_quantity}</td>
+                      <td><StatusBadge status={p.available_quantity > 0 ? 'In Stock' : 'Out of Stock'} size="sm" /></td>
+                      <td>
+                        <div className="flex gap-1">
+                          <button className="fs-btn-secondary" style={{ padding: '4px 8px', fontSize: 12 }} onClick={() => { setSelected(p); setDrawerOpen(true); }}>View</button>
+                          <button className="fs-btn-secondary" style={{ padding: '4px 8px', fontSize: 12 }} onClick={() => router.push('/operations')}>Transfer</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Detail Drawer */}
+      <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title={selected?.product_name || ''} subtitle={selected?.sku}>
+        {selected && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { label: 'Warehouse', value: selected.warehouse_name },
+                { label: 'Location', value: selected.location_name },
+                { label: 'Physical Stock', value: selected.quantity },
+                { label: 'Reserved', value: selected.reserved_quantity },
+                { label: 'Available', value: selected.available_quantity },
+                { label: 'Status', value: selected.available_quantity > 0 ? 'In Stock' : 'Out of Stock' },
+              ].map(f => (
+                <div key={f.label} className="p-3 rounded-xl" style={{ background: 'var(--surface-muted)' }}>
+                  <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>{f.label}</p>
+                  <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{f.value}</p>
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2 pt-2">
+              <button className="fs-btn-primary flex-1" onClick={() => router.push('/operations')}>Create Transfer</button>
+              <button className="fs-btn-secondary flex-1" onClick={() => router.push('/ledger')}>View Ledger</button>
+            </div>
+          </div>
+        )}
+      </Drawer>
     </AppShell>
   );
 }

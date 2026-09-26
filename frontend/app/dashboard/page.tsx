@@ -4,494 +4,350 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { AppShell } from '@/components/layout/AppShell';
+import { MetricCard, StatusBadge, SkeletonCard, EmptyState } from '@/components/ui/UI';
 import {
-  Package,
-  Layers,
-  MapPin,
-  AlertTriangle,
-  XCircle,
-  Database,
-  Building2,
-  Loader2,
-  Users,
-  Activity,
-  CheckCircle,
-  TrendingUp,
-  ArrowUpRight
+  Package, Building2, Boxes, AlertTriangle, XCircle, Users, Activity,
+  CheckCircle, TrendingUp, MapPin, ArrowUpRight, Database, Shield,
+  BarChart2
 } from 'lucide-react';
 import { fetchDashboardSummary, DashboardSummary } from '@/services/dashboard.service';
 import { DEMO_ACTIVITY, DEMO_MOVEMENT, DEMO_WAREHOUSES, DEMO_PRODUCTS } from '@/lib/demo/data';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, Legend
+} from 'recharts';
+import { useTheme } from '@/lib/theme/ThemeProvider';
+
+const isDemo = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function MovementChart({ data }: { data: any[] }) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
+  const gridColor = isDark ? '#2B3037' : '#E2E5DF';
+  const textColor = isDark ? '#7E8792' : '#98A2B3';
+
+  return (
+    <ResponsiveContainer width="100%" height={220}>
+      <BarChart data={data} barGap={4} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
+        <XAxis dataKey="day" tick={{ fontSize: 11, fill: textColor }} tickLine={false} axisLine={false}
+          tickFormatter={(v: string) => v.substring(0, 3)} />
+        <YAxis tick={{ fontSize: 11, fill: textColor }} tickLine={false} axisLine={false} />
+        <Tooltip
+          contentStyle={{
+            background: isDark ? 'var(--surface-elevated)' : '#fff',
+            border: '1px solid var(--border)',
+            borderRadius: 10,
+            color: 'var(--text-primary)',
+            fontSize: 12,
+          }}
+        />
+        <Legend wrapperStyle={{ fontSize: 12, color: textColor, paddingTop: 8 }} />
+        <Bar dataKey="received" name="Received" fill="var(--primary)" radius={[3, 3, 0, 0]} maxBarSize={28} />
+        <Bar dataKey="issued" name="Issued" fill="var(--success)" radius={[3, 3, 0, 0]} maxBarSize={28} />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
 
 export default function DashboardPage() {
   const router = useRouter();
   const { user, token, isLoading: authLoading, isAuthenticated } = useAuth();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const isDemo = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
 
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push('/login');
-    }
+    if (!authLoading && !isAuthenticated) router.push('/login');
   }, [authLoading, isAuthenticated, router]);
 
   useEffect(() => {
     async function loadData() {
-      if (!token) return;
       try {
         setLoading(true);
-        const data = await fetchDashboardSummary(token);
+        const data = await fetchDashboardSummary(token!);
         setSummary(data);
-        setError(null);
-      } catch (err) {
-        setError((err as Error).message || 'Failed to load dashboard summary');
+      } catch {
+        setSummary(null);
       } finally {
         setLoading(false);
       }
     }
-    
-    if (isAuthenticated) {
-      loadData();
-    }
+    if (isAuthenticated) loadData();
   }, [isAuthenticated, token]);
 
-  if (authLoading || (loading && !summary)) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950">
-        <div className="text-center space-y-3">
-          <Loader2 className="h-8 w-8 animate-spin text-emerald-400 mx-auto" />
-          <p className="text-sm text-slate-400">Loading dashboard data...</p>
-        </div>
-      </div>
-    );
-  }
+  if (authLoading) return null;
+  if (!user) return null;
 
-  if (!user) {
-    return null;
-  }
+  const criticalProducts = DEMO_PRODUCTS.filter(p => p.status !== 'Healthy');
 
   return (
-    <AppShell title="Dashboard" activeItem="Dashboard">
-      <div className="space-y-8 pb-12">
-        
-        {/* HEADER */}
-        <div className="relative overflow-hidden rounded-2xl border border-slate-800 bg-gradient-to-r from-slate-900 via-slate-900/90 to-slate-950 p-6 sm:p-8 shadow-xl">
-          <div className="relative z-10 max-w-3xl">
-            <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-              Welcome back, {user.first_name} {user.last_name}
-            </h2>
-            <div className="mt-2 flex items-center gap-3">
-              <span className="inline-flex items-center rounded-md bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-400 ring-1 ring-inset ring-emerald-500/20">
-                {user.role}
-              </span>
-              <span className="text-sm text-slate-400">{user.email}</span>
-            </div>
-            <p className="mt-3 text-sm sm:text-base text-slate-300 leading-relaxed">
-              Here&apos;s a summary of your organization&apos;s inventory.
+    <AppShell title="Dashboard">
+      <div className="fs-page-inner space-y-8">
+
+        {/* Hero */}
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium mb-1" style={{ color: 'var(--primary)' }}>
+              Welcome back, {user.first_name}
+            </p>
+            <h1 className="text-3xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+              Inventory Command Center
+            </h1>
+            <p className="text-sm mt-2" style={{ color: 'var(--text-secondary)' }}>
+              Real-time visibility across products, warehouses and stock movements.
             </p>
           </div>
-          <div className="pointer-events-none absolute -right-12 -top-12 h-64 w-64 rounded-full bg-emerald-500/5 blur-3xl" />
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <button className="fs-btn-secondary" onClick={() => router.push('/ledger')}>
+              <Database className="h-4 w-4" /> View Ledger
+            </button>
+            <button className="fs-btn-primary" onClick={() => router.push('/operations')}>
+              <ArrowUpRight className="h-4 w-4" /> View Operations
+            </button>
+          </div>
         </div>
 
-        {error && (
-          <div className="bg-red-500/10 border border-red-500 text-red-500 p-4 rounded-lg">
-            {error}
+        {/* KPI Grid */}
+        {loading ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[...Array(8)].map((_, i) => <SkeletonCard key={i} />)}
           </div>
-        )}
-
-        {/* KPI GRID */}
-        {summary && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5 flex items-start gap-4">
-              <div className="rounded-lg bg-emerald-500/10 p-2.5 text-emerald-400 mt-1">
-                <Package className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-sm text-slate-400">Total Products</p>
-                <h3 className="text-2xl font-bold text-white mt-1">{summary.total_products}</h3>
-                <p className="text-xs text-slate-500 mt-1">12 added this month</p>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5 flex items-start gap-4">
-              <div className="rounded-lg bg-blue-500/10 p-2.5 text-blue-400 mt-1">
-                <CheckCircle className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-sm text-slate-400">Active Products</p>
-                <h3 className="text-2xl font-bold text-white mt-1">{summary.active_products}</h3>
-                <p className="text-xs text-slate-500 mt-1">Ready for fulfillment</p>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5 flex items-start gap-4">
-              <div className="rounded-lg bg-indigo-500/10 p-2.5 text-indigo-400 mt-1">
-                <Building2 className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-sm text-slate-400">Warehouses</p>
-                <h3 className="text-2xl font-bold text-white mt-1">{summary.total_warehouses}</h3>
-                <p className="text-xs text-slate-500 mt-1">Across multiple cities</p>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5 flex items-start gap-4">
-              <div className="rounded-lg bg-purple-500/10 p-2.5 text-purple-400 mt-1">
-                <MapPin className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-sm text-slate-400">Total Locations</p>
-                <h3 className="text-2xl font-bold text-white mt-1">{summary.total_locations}</h3>
-                <p className="text-xs text-slate-500 mt-1">Active storage zones</p>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5 flex items-start gap-4">
-              <div className="rounded-lg bg-emerald-500/10 p-2.5 text-emerald-400 mt-1">
-                <Layers className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-sm text-slate-400">Total Stock Units</p>
-                <h3 className="text-2xl font-bold text-white mt-1">{summary.total_stock_units.toLocaleString()}</h3>
-                <p className="text-xs text-slate-500 mt-1">Tracked physical units</p>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5 flex items-start gap-4">
-              <div className="rounded-lg bg-orange-500/10 p-2.5 text-orange-400 mt-1">
-                <AlertTriangle className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-sm text-slate-400">Low Stock Items</p>
-                <h3 className="text-2xl font-bold text-white mt-1">{summary.low_stock_products}</h3>
-                <p className="text-xs text-orange-500/80 mt-1">Requires attention</p>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5 flex items-start gap-4">
-              <div className="rounded-lg bg-red-500/10 p-2.5 text-red-400 mt-1">
-                <XCircle className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-sm text-slate-400">Out of Stock</p>
-                <h3 className="text-2xl font-bold text-white mt-1">{summary.out_of_stock_products}</h3>
-                <p className="text-xs text-red-500/80 mt-1">Immediate action required</p>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5 flex items-start gap-4">
-              <div className="rounded-lg bg-sky-500/10 p-2.5 text-sky-400 mt-1">
-                <Users className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-sm text-slate-400">Active Users</p>
-                <h3 className="text-2xl font-bold text-white mt-1">{summary.active_users || 0}</h3>
-                <p className="text-xs text-slate-500 mt-1">Across 4 roles</p>
-              </div>
-            </div>
+        ) : summary ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <MetricCard label="Total Products" value={summary.total_products} subValue="Tracked in catalog" icon={<Package className="h-4 w-4" />} />
+            <MetricCard label="Active Products" value={summary.active_products} subValue="Ready for fulfillment" color="success" icon={<CheckCircle className="h-4 w-4" />} />
+            <MetricCard label="Warehouses" value={summary.total_warehouses} subValue="Across multiple cities" icon={<Building2 className="h-4 w-4" />} />
+            <MetricCard label="Total Locations" value={summary.total_locations} subValue="Active storage zones" icon={<MapPin className="h-4 w-4" />} />
+            <MetricCard label="Stock Units" value={summary.total_stock_units.toLocaleString()} subValue="Total tracked units" icon={<Boxes className="h-4 w-4" />} />
+            <MetricCard label="Low Stock Items" value={summary.low_stock_products} subValue="Requires reorder" color="warning" icon={<AlertTriangle className="h-4 w-4" />} />
+            <MetricCard label="Out of Stock" value={summary.out_of_stock_products} subValue="Immediate action required" color="danger" icon={<XCircle className="h-4 w-4" />} />
+            <MetricCard label="Active Users" value={summary.active_users || 0} subValue="Across 4 roles" icon={<Users className="h-4 w-4" />} />
           </div>
-        )}
+        ) : null}
 
-        {/* INVENTORY OVERVIEW & MOVEMENT */}
+        {/* Inventory Health + Movement */}
         {summary && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-1 rounded-xl border border-slate-800 bg-slate-900/60 p-6 flex flex-col justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-white mb-6">Inventory Overview</h3>
-                <div className="space-y-6">
-                  <div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="text-slate-400">Physical Stock</span>
-                      <span className="font-semibold text-white">{summary.physical_stock?.toLocaleString()}</span>
+            {/* Inventory Health */}
+            <div className="fs-surface p-6">
+              <h2 className="text-base font-semibold mb-5" style={{ color: 'var(--text-primary)' }}>Inventory Health</h2>
+              <div className="space-y-4">
+                {[
+                  { label: 'Physical Stock', value: (summary.physical_stock ?? 0).toLocaleString(), pct: 100, color: 'var(--text-secondary)' },
+                  { label: 'Reserved', value: (summary.reserved_stock ?? 0).toLocaleString(), pct: Math.round(((summary.reserved_stock ?? 0) / (summary.physical_stock || 1)) * 100), color: 'var(--warning)' },
+                  { label: 'Available', value: (summary.available_stock ?? 0).toLocaleString(), pct: Math.round(((summary.available_stock ?? 0) / (summary.physical_stock || 1)) * 100), color: 'var(--success)' },
+                ].map(item => (
+                  <div key={item.label}>
+                    <div className="flex justify-between text-sm mb-1.5">
+                      <span style={{ color: 'var(--text-secondary)' }}>{item.label}</span>
+                      <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{item.value}</span>
                     </div>
-                    <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
-                      <div className="h-full bg-slate-500 w-full" />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="text-slate-400">Reserved Stock</span>
-                      <span className="font-semibold text-amber-400">{summary.reserved_stock?.toLocaleString()}</span>
-                    </div>
-                    <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
-                      <div className="h-full bg-amber-500" style={{ width: '12%' }} />
+                    <div className="fs-progress-bg h-1.5">
+                      <div className="fs-progress-fill" style={{ width: `${item.pct}%`, background: item.color, height: '100%' }} />
                     </div>
                   </div>
-                  <div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="text-slate-400">Available Stock</span>
-                      <span className="font-semibold text-emerald-400">{summary.available_stock?.toLocaleString()}</span>
-                    </div>
-                    <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
-                      <div className="h-full bg-emerald-500" style={{ width: '88%' }} />
-                    </div>
-                  </div>
-                </div>
+                ))}
               </div>
-              
-              <div className="mt-8 pt-6 border-t border-slate-800">
-                <div className="flex justify-between items-end">
+              <div className="mt-6 pt-5 border-t" style={{ borderColor: 'var(--border)' }}>
+                <div className="flex items-end justify-between">
                   <div>
-                    <p className="text-sm text-slate-400">Inventory Accuracy</p>
-                    <h4 className="text-3xl font-bold text-white mt-1">{summary.inventory_accuracy}%</h4>
+                    <p className="text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>Inventory Accuracy</p>
+                    <p className="text-3xl font-bold" style={{ color: 'var(--primary)' }}>{summary.inventory_accuracy}%</p>
                   </div>
-                  <div className="flex items-center text-emerald-400 text-sm font-medium">
-                    <ArrowUpRight className="h-4 w-4 mr-1" />
-                    +0.2%
-                  </div>
+                  <span className="text-sm font-semibold" style={{ color: 'var(--success)' }}>↑ +0.2%</span>
                 </div>
               </div>
             </div>
 
-            {/* INVENTORY MOVEMENT CHART */}
-            <div className="lg:col-span-2 rounded-xl border border-slate-800 bg-slate-900/60 p-6">
-              <h3 className="text-lg font-semibold text-white mb-6">Inventory Movement (7 Days)</h3>
-              {isDemo ? (
-                <div className="h-64 flex items-end gap-2 sm:gap-4 px-2">
-                  {DEMO_MOVEMENT.map((m, i) => {
-                    const max = 700;
-                    const rH = (m.received / max) * 100;
-                    const iH = (m.issued / max) * 100;
-                    return (
-                      <div key={i} className="flex-1 flex flex-col justify-end items-center group relative h-full">
-                        <div className="w-full flex justify-center gap-1 sm:gap-2 h-full items-end pb-8">
-                          <div 
-                            className="w-1/3 bg-emerald-500/80 hover:bg-emerald-400 rounded-t-sm transition-all" 
-                            style={{ height: `${rH}%` }}
-                            title={`Received: ${m.received}`}
-                          />
-                          <div 
-                            className="w-1/3 bg-blue-500/80 hover:bg-blue-400 rounded-t-sm transition-all" 
-                            style={{ height: `${iH}%` }}
-                            title={`Issued: ${m.issued}`}
-                          />
-                        </div>
-                        <span className="absolute bottom-0 text-[10px] sm:text-xs text-slate-500">{m.day.substring(0, 3)}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="h-64 flex items-center justify-center text-slate-500 text-sm">
-                  Movement data not available.
-                </div>
-              )}
-              <div className="flex justify-center gap-6 mt-4">
-                <div className="flex items-center gap-2 text-xs text-slate-400">
-                  <span className="h-3 w-3 rounded-sm bg-emerald-500/80"></span> Received
-                </div>
-                <div className="flex items-center gap-2 text-xs text-slate-400">
-                  <span className="h-3 w-3 rounded-sm bg-blue-500/80"></span> Issued
+            {/* Movement Chart */}
+            <div className="fs-surface p-6 lg:col-span-2">
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>Inventory Movement</h2>
+                <div className="flex gap-1">
+                  {['7D', '30D'].map((p, i) => (
+                    <button key={p} className={i === 0 ? 'fs-btn-primary' : 'fs-btn-secondary'} style={{ padding: '4px 12px', fontSize: 12 }}>
+                      {p}
+                    </button>
+                  ))}
                 </div>
               </div>
+              {isDemo ? (
+                <MovementChart data={DEMO_MOVEMENT} />
+              ) : (
+                <EmptyState icon={<BarChart2 className="h-10 w-10" />} title="Movement data unavailable" description="Connect to the live API to see inventory movement data." />
+              )}
             </div>
           </div>
         )}
 
-        {/* STOCK STATUS + WAREHOUSES */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1 rounded-xl border border-slate-800 bg-slate-900/60 p-6">
-            <h3 className="text-lg font-semibold text-white mb-6">Stock Status</h3>
-            {summary?.stock_status && (
-              <div className="space-y-4">
-                <div className="flex justify-between items-center p-3 rounded-lg bg-slate-800/30 border border-slate-700/50">
-                  <div className="flex items-center gap-3">
-                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
-                    <span className="text-sm text-slate-300">Healthy</span>
-                  </div>
-                  <span className="font-semibold text-white">{summary.stock_status.healthy}</span>
-                </div>
-                <div className="flex justify-between items-center p-3 rounded-lg bg-slate-800/30 border border-slate-700/50">
-                  <div className="flex items-center gap-3">
-                    <span className="h-2.5 w-2.5 rounded-full bg-amber-500"></span>
-                    <span className="text-sm text-slate-300">Low Stock</span>
-                  </div>
-                  <span className="font-semibold text-white">{summary.stock_status.low}</span>
-                </div>
-                <div className="flex justify-between items-center p-3 rounded-lg bg-slate-800/30 border border-slate-700/50">
-                  <div className="flex items-center gap-3">
-                    <span className="h-2.5 w-2.5 rounded-full bg-orange-500"></span>
-                    <span className="text-sm text-slate-300">Critical</span>
-                  </div>
-                  <span className="font-semibold text-white">{summary.stock_status.critical}</span>
-                </div>
-                <div className="flex justify-between items-center p-3 rounded-lg bg-slate-800/30 border border-slate-700/50">
-                  <div className="flex items-center gap-3">
-                    <span className="h-2.5 w-2.5 rounded-full bg-red-500"></span>
-                    <span className="text-sm text-slate-300">Out of Stock</span>
-                  </div>
-                  <span className="font-semibold text-white">{summary.stock_status.out}</span>
-                </div>
-              </div>
-            )}
+        {/* Critical Inventory */}
+        <div className="fs-surface overflow-hidden">
+          <div className="flex items-center justify-between p-6 border-b" style={{ borderColor: 'var(--border)' }}>
+            <div>
+              <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
+                <AlertTriangle className="inline h-4 w-4 mr-2" style={{ color: 'var(--warning)' }} />
+                Critical Inventory
+              </h2>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>Items below reorder threshold requiring attention</p>
+            </div>
+            <button className="fs-btn-secondary" onClick={() => router.push('/inventory')}>View All</button>
           </div>
-
-          <div className="lg:col-span-2 rounded-xl border border-slate-800 bg-slate-900/60 p-6 overflow-x-auto">
-            <h3 className="text-lg font-semibold text-white mb-6">Warehouse Overview</h3>
-            <table className="w-full text-left text-sm text-slate-300">
-              <thead className="border-b border-slate-800 text-xs uppercase text-slate-500">
+          <div className="overflow-x-auto">
+            <table className="fs-table">
+              <thead>
                 <tr>
-                  <th className="pb-3 font-medium">Warehouse</th>
-                  <th className="pb-3 font-medium">Location</th>
-                  <th className="pb-3 font-medium">Stock Units</th>
-                  <th className="pb-3 font-medium">Utilization</th>
-                  <th className="pb-3 font-medium">Status</th>
+                  <th>Product</th>
+                  <th>SKU</th>
+                  <th>Warehouse</th>
+                  <th className="text-right">Current Stock</th>
+                  <th className="text-right">Reorder Point</th>
+                  <th>Risk</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/50">
-                {(isDemo ? DEMO_WAREHOUSES : []).map(w => (
-                  <tr key={w.id} className="hover:bg-slate-800/20">
-                    <td className="py-3 font-medium text-white">{w.name}</td>
-                    <td className="py-3">{w.city}</td>
-                    <td className="py-3">{w.stock_units.toLocaleString()}</td>
-                    <td className="py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-16 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                          <div className={`h-full ${w.utilization > 70 ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{ width: `${w.utilization}%` }} />
-                        </div>
-                        <span className="text-xs">{w.utilization}%</span>
-                      </div>
+              <tbody>
+                {criticalProducts.map(p => (
+                  <tr key={p.id}>
+                    <td>
+                      <p className="font-medium" style={{ color: 'var(--text-primary)' }}>{p.name}</p>
+                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{p.category.name}</p>
                     </td>
-                    <td className="py-3">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                        w.status === 'Healthy' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'
-                      }`}>
-                        {w.status}
-                      </span>
+                    <td><span className="font-mono text-xs" style={{ color: 'var(--primary)' }}>{p.sku}</span></td>
+                    <td><span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Chennai Main</span></td>
+                    <td className="text-right">
+                      <span className="font-semibold" style={{ color: 'var(--danger)' }}>{p.current_stock}</span>
+                    </td>
+                    <td className="text-right" style={{ color: 'var(--text-secondary)' }}>{p.reorder_point}</td>
+                    <td><StatusBadge status={p.status || 'Healthy'} /></td>
+                    <td>
+                      <div className="flex gap-2">
+                        <button className="fs-btn-secondary" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => router.push('/inventory')}>View</button>
+                        <button className="fs-btn-primary" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => router.push('/operations')}>Reorder</button>
+                      </div>
                     </td>
                   </tr>
                 ))}
-                {!isDemo && (
-                  <tr><td colSpan={5} className="py-6 text-center text-slate-500">Warehouse data not available.</td></tr>
-                )}
               </tbody>
             </table>
           </div>
         </div>
 
-        {/* LOW STOCK ALERTS */}
-        <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-6">
-          <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-amber-500" />
-            Low Stock Alerts
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {(isDemo ? DEMO_PRODUCTS.filter(p => p.status !== 'Healthy') : []).map(p => (
-              <div key={p.id} className="border border-slate-800 bg-slate-900 rounded-lg p-4 flex flex-col">
-                <div className="flex justify-between items-start mb-2">
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                    p.status === 'Critical' ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                  }`}>
-                    {p.status}
-                  </span>
-                  <span className="text-xs text-slate-500 font-mono">{p.sku}</span>
-                </div>
-                <h4 className="font-medium text-white mb-4 flex-1">{p.name}</h4>
-                <div className="flex justify-between text-sm border-t border-slate-800 pt-3">
-                  <div className="flex flex-col">
-                    <span className="text-slate-500 text-xs">Available</span>
-                    <span className="text-white font-semibold">{p.current_stock}</span>
+        {/* Recent Activity + Warehouse Network */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Recent Activity */}
+          <div className="fs-surface p-6">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
+                <Activity className="inline h-4 w-4 mr-2" style={{ color: 'var(--info)' }} />
+                Recent Activity
+              </h2>
+              <button className="fs-btn-secondary" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => router.push('/ledger')}>View All</button>
+            </div>
+            <div className="space-y-3">
+              {DEMO_ACTIVITY.map(act => (
+                <div key={act.id} className="flex gap-3 items-start p-3 rounded-xl transition-colors hover:bg-[var(--surface-muted)] cursor-pointer" onClick={() => router.push('/ledger')}>
+                  <div className="flex-shrink-0 mt-0.5">
+                    <div className="h-2 w-2 rounded-full mt-1.5" style={{ background: act.qty.startsWith('+') ? 'var(--success)' : 'var(--warning)' }} />
                   </div>
-                  <div className="flex flex-col text-right">
-                    <span className="text-slate-500 text-xs">Reorder Pt</span>
-                    <span className="text-slate-400">{p.reorder_point}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-start">
+                      <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{act.action}</p>
+                      <span className="text-xs font-semibold flex-shrink-0 ml-2" style={{ color: act.qty.startsWith('+') ? 'var(--success)' : 'var(--warning)' }}>{act.qty}</span>
+                    </div>
+                    <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{act.product} · {act.warehouse}</p>
+                    <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{act.time}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Top Moving Products */}
+          <div className="fs-surface p-6">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
+                <TrendingUp className="inline h-4 w-4 mr-2" style={{ color: 'var(--success)' }} />
+                Top Moving Products
+              </h2>
+              <button className="fs-btn-secondary" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => router.push('/products')}>View All</button>
+            </div>
+            <div className="space-y-2">
+              {DEMO_PRODUCTS.slice(0, 6).map((p, i) => (
+                <div key={p.id} className="flex items-center gap-3 p-3 rounded-xl transition-colors hover:bg-[var(--surface-muted)] cursor-pointer" onClick={() => router.push('/products')}>
+                  <span className="text-xs font-bold w-5 text-center" style={{ color: 'var(--text-muted)' }}>#{i + 1}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{p.name}</p>
+                    <p className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>{p.sku}</p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{p.current_stock}</p>
+                    <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>units</p>
+                  </div>
+                  <StatusBadge status={p.status || 'Healthy'} size="sm" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Warehouse Network */}
+        <div className="fs-surface overflow-hidden">
+          <div className="flex items-center justify-between p-6 border-b" style={{ borderColor: 'var(--border)' }}>
+            <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
+              <Building2 className="inline h-4 w-4 mr-2" style={{ color: 'var(--info)' }} />
+              Warehouse Network
+            </h2>
+            <button className="fs-btn-secondary" onClick={() => router.push('/warehouses')}>Manage Warehouses</button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-0 divide-y md:divide-y-0 md:divide-x" style={{ borderColor: 'var(--border)', ['--tw-divide-opacity' as string]: 1 }}>
+            {DEMO_WAREHOUSES.map(w => (
+              <div key={w.id} className="p-5 hover:bg-[var(--surface-muted)] transition-colors cursor-pointer" onClick={() => router.push('/warehouses')}
+                style={{ borderColor: 'var(--border)' }}>
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{w.name}</p>
+                    <p className="text-xs font-mono mt-0.5" style={{ color: 'var(--primary)' }}>{w.code}</p>
+                  </div>
+                  <StatusBadge status={w.status === 'Healthy' ? 'Healthy' : 'Attention'} size="sm" />
+                </div>
+                <div className="space-y-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                  <div className="flex justify-between">
+                    <span>Locations</span><span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{w.locations_count}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Stock Units</span><span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{w.stock_units.toLocaleString()}</span>
+                  </div>
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <span>Utilization</span><span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{w.utilization}%</span>
+                    </div>
+                    <div className="fs-progress-bg h-1.5">
+                      <div className="fs-progress-fill" style={{ width: `${w.utilization}%`, background: w.utilization > 70 ? 'var(--warning)' : 'var(--success)', height: '100%' }} />
+                    </div>
                   </div>
                 </div>
               </div>
             ))}
           </div>
-          {!isDemo && (
-            <div className="text-center py-6 text-slate-500 text-sm">Low stock alerts not available.</div>
-          )}
         </div>
 
-        {/* RECENT ACTIVITY & TOP MOVING */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* RECENT ACTIVITY */}
-          <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-6">
-            <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
-              <Activity className="h-5 w-5 text-blue-400" />
-              Recent Activity
-            </h3>
-            <div className="space-y-4">
-              {(isDemo ? DEMO_ACTIVITY : []).map(act => (
-                <div key={act.id} className="flex gap-4 p-3 rounded-lg hover:bg-slate-800/30 transition-colors">
-                  <div className="text-xs font-mono text-slate-500 mt-1">{act.time}</div>
-                  <div className="flex-1">
-                    <div className="flex justify-between">
-                      <span className="text-sm font-medium text-white">{act.action}</span>
-                      <span className={`text-sm font-medium ${act.qty.startsWith('+') ? 'text-emerald-400' : 'text-amber-400'}`}>{act.qty}</span>
-                    </div>
-                    <div className="flex justify-between mt-1">
-                      <span className="text-xs text-slate-400">{act.product}</span>
-                      <span className="text-xs text-slate-500">{act.warehouse}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {!isDemo && <div className="text-center py-4 text-slate-500 text-sm">Activity not available.</div>}
-            </div>
-          </div>
-
-          {/* TOP MOVING PRODUCTS */}
-          <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-6">
-            <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-emerald-400" />
-              Top Moving Products
-            </h3>
-            <div className="space-y-4">
-              {(isDemo ? DEMO_PRODUCTS.slice(0, 5) : []).map(p => (
-                <div key={p.id} className="flex items-center justify-between p-3 rounded-lg bg-slate-800/20 border border-slate-800/50">
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded bg-slate-800 flex items-center justify-center text-slate-400">
-                      <Package className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium text-white">{p.name}</div>
-                      <div className="text-xs font-mono text-slate-500">{p.sku}</div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm font-semibold text-white">{p.current_stock} <span className="text-slate-500 text-xs font-normal">in stock</span></div>
-                    <div className="text-xs text-emerald-400 flex items-center justify-end gap-1 mt-0.5">
-                      <ArrowUpRight className="h-3 w-3" /> High Demand
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {!isDemo && <div className="text-center py-4 text-slate-500 text-sm">Top moving products not available.</div>}
-            </div>
-          </div>
-        </div>
-
-        {/* PHASE 1 SYSTEM STATUS */}
-        <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-6">
-          <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
-            <Database className="h-5 w-5 text-indigo-400" />
+        {/* System Health */}
+        <div className="fs-surface p-6">
+          <h2 className="text-base font-semibold mb-5" style={{ color: 'var(--text-primary)' }}>
+            <Shield className="inline h-4 w-4 mr-2" style={{ color: 'var(--primary)' }} />
             Phase 1 System Status
-          </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {[
-              { name: 'Authentication', status: 'Operational' },
-              { name: 'Organizations', status: 'Operational' },
-              { name: 'Users & Roles', status: 'Operational' },
-              { name: 'Products', status: 'Operational' },
-              { name: 'Categories', status: 'Operational' },
-              { name: 'UOM', status: 'Operational' },
-              { name: 'Warehouses', status: 'Operational' },
-              { name: 'Locations', status: 'Operational' },
-              { name: 'Inventory', status: 'Operational' },
-              { name: 'Database', status: 'Connected' },
-              { name: 'API', status: 'Online' },
+              'Authentication', 'Organizations', 'Users & Roles',
+              'Products', 'Warehouses', 'Inventory',
+              'Operations', 'Ledger', 'Categories',
+              'UOM', 'Database', 'API',
             ].map(mod => (
-              <div key={mod.name} className="flex items-center gap-3 p-3 rounded-lg border border-slate-800 bg-slate-900/40">
-                <div className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]"></div>
-                <div>
-                  <div className="text-xs font-medium text-white">{mod.name}</div>
-                  <div className="text-[10px] text-emerald-500 uppercase tracking-wider">{mod.status}</div>
-                </div>
+              <div key={mod} className="flex items-center gap-2 p-3 rounded-xl" style={{ background: 'var(--success-soft)' }}>
+                <div className="h-2 w-2 rounded-full flex-shrink-0" style={{ background: 'var(--success)' }} />
+                <span className="text-xs font-medium truncate" style={{ color: 'var(--success)' }}>{mod}</span>
               </div>
             ))}
           </div>

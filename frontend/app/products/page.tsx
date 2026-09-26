@@ -1,142 +1,338 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { AppShell } from '@/components/layout/AppShell';
-import { Plus, Loader2, Package, Search, Filter, Upload } from 'lucide-react';
-import { fetchProducts, Product } from '@/services/product.service';
+import { StatusBadge, MetricCard, EmptyState } from '@/components/ui/UI';
+import { Drawer, Modal } from '@/components/ui/Overlay';
+import { useToast } from '@/lib/ui/ToastProvider';
+import { Package, Plus, Search, Filter, Upload, Download, X, ChevronDown } from 'lucide-react';
+import { demoGetProducts, demoCreateProduct, demoDeactivateProduct, demoDeleteProduct } from '@/lib/demo/store';
+import { fetchProducts } from '@/services/product.service';
+import { DEMO_CATEGORIES, DEMO_UOMS } from '@/lib/demo/data';
+
+const isDemo = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Product = any;
 
 export default function ProductsPage() {
   const router = useRouter();
   const { token, isLoading: authLoading, isAuthenticated } = useAuth();
+  const toast = useToast();
+
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<Product | null>(null);
+  const [form, setForm] = useState({ name: '', sku: '', category_id: 'cat-1', uom_id: 'uom-1', reorder_point: 10, reorder_quantity: 50 });
+  const [formLoading, setFormLoading] = useState(false);
 
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) router.push('/login');
-  }, [authLoading, isAuthenticated, router]);
+  useEffect(() => { if (!authLoading && !isAuthenticated) router.push('/login'); }, [authLoading, isAuthenticated, router]);
 
-  useEffect(() => {
-    async function loadData() {
-      if (!token) return;
-      try {
-        setLoading(true);
-        const data = await fetchProducts(token);
+  const loadProducts = useCallback(async () => {
+    setLoading(true);
+    try {
+      if (isDemo) {
+        setProducts(demoGetProducts());
+      } else {
+        const data = await fetchProducts(token!);
         setProducts(data);
-      } catch (err) {
-        setError((err as Error).message);
-      } finally {
-        setLoading(false);
       }
+    } catch {
+      toast.error('Unable to load products', 'Check the connection and try again.');
+    } finally {
+      setLoading(false);
     }
-    if (isAuthenticated) loadData();
-  }, [isAuthenticated, token]);
+  }, [token, toast]);
 
-  if (authLoading || (loading && !products.length)) return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-950">
-      <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
-    </div>
-  );
+  useEffect(() => { if (isAuthenticated) loadProducts(); }, [isAuthenticated, loadProducts]);
+
+  const filtered = products.filter(p => {
+    const matchSearch = !searchQuery || p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.sku.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchStatus = statusFilter === 'All' || p.status === statusFilter || (statusFilter === 'Active' && p.is_active);
+    return matchSearch && matchStatus;
+  });
+
+  const handleCreate = async () => {
+    setFormLoading(true);
+    try {
+      const cat = DEMO_CATEGORIES.find(c => c.id === form.category_id);
+      const uom = DEMO_UOMS.find(u => u.id === form.uom_id);
+      if (isDemo) {
+        demoCreateProduct({ ...form, category: cat, uom, category_name: cat?.name, uom_name: uom?.name });
+        toast.success('Product created', `${form.name} added to catalog.`);
+        setCreateOpen(false);
+        setForm({ name: '', sku: '', category_id: 'cat-1', uom_id: 'uom-1', reorder_point: 10, reorder_quantity: 50 });
+        loadProducts();
+      }
+    } catch {
+      toast.error('Failed to create product');
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const handleDeactivate = (p: Product) => {
+    if (isDemo) {
+      demoDeactivateProduct(p.id);
+      toast.success('Product deactivated', `${p.name} has been deactivated.`);
+      loadProducts();
+    }
+  };
+
+  const handleDelete = (p: Product) => {
+    if (isDemo) {
+      demoDeleteProduct(p.id);
+      toast.success('Product deleted', `${p.name} has been removed.`);
+      setConfirmDelete(null);
+      loadProducts();
+    }
+  };
+
+  const exportCSV = () => {
+    const rows = [['SKU', 'Name', 'Category', 'UOM', 'Current Stock', 'Reorder Point', 'Status']];
+    filtered.forEach(p => rows.push([p.sku, p.name, p.category?.name, p.uom?.name, p.current_stock ?? '', p.reorder_point, p.status || (p.is_active ? 'Active' : 'Inactive')]));
+    const csv = rows.map(r => r.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'products.csv'; a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Export complete', 'products.csv downloaded.');
+  };
+
+  const statusOptions = ['All', 'Healthy', 'Low Stock', 'Critical'];
+
+  if (authLoading) return null;
 
   return (
-    <AppShell title="Products" activeItem="Products">
-      <div className="space-y-6">
-        <div className="relative overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/80 p-6 sm:p-8 shadow-xl">
-          <div className="absolute right-0 top-0 opacity-10 pointer-events-none">
-            <Package className="w-64 h-64 -mt-10 -mr-10 text-emerald-500" />
-          </div>
-          <div className="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <AppShell title="Products">
+      <div className="fs-page-inner space-y-6">
+
+        {/* Page Header */}
+        <div>
+          <p className="text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Inventory / Products</p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-bold text-white tracking-tight">Product Catalog</h2>
-              <p className="text-sm text-slate-400 mt-1 max-w-xl">Manage SKUs, stock thresholds and product intelligence.</p>
+              <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Product Catalog</h1>
+              <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Manage SKUs, stock thresholds and inventory classification.</p>
             </div>
-            <div className="flex items-center gap-3 w-full sm:w-auto">
-              <button className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-lg font-medium transition-colors border border-slate-700">
-                <Upload className="h-4 w-4" /> Import
-              </button>
-              <button className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2.5 rounded-lg font-medium transition-colors shadow-lg shadow-emerald-500/20">
-                <Plus className="h-4 w-4" /> Add Product
-              </button>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button className="fs-btn-secondary" onClick={exportCSV}><Download className="h-4 w-4" /> Export</button>
+              <button className="fs-btn-secondary"><Upload className="h-4 w-4" /> Import</button>
+              <button className="fs-btn-primary" onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4" /> Add Product</button>
             </div>
           </div>
+        </div>
+
+        {/* Metrics */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <MetricCard label="Total Products" value={products.length} subValue="In catalog" />
+          <MetricCard label="Active" value={products.filter(p => p.is_active).length} color="success" />
+          <MetricCard label="Low Stock" value={products.filter(p => p.status === 'Low Stock').length} color="warning" />
+          <MetricCard label="Critical" value={products.filter(p => p.status === 'Critical').length} color="danger" />
         </div>
 
         {/* Toolbar */}
-        <div className="flex flex-col sm:flex-row justify-between gap-4 items-center">
-          <div className="relative w-full sm:w-96">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-            <input 
-              type="text" 
-              placeholder="Search by product name or SKU..." 
-              className="bg-slate-900 border border-slate-800 rounded-lg pl-9 pr-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 w-full"
+        <div className="flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: 'var(--text-muted)' }} />
+            <input
+              type="text"
+              placeholder="Search by name or SKU…"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="fs-input pl-9"
             />
           </div>
-          <button className="w-full sm:w-auto flex justify-center items-center gap-2 px-4 py-2.5 border border-slate-800 bg-slate-900/60 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800 transition-colors">
-            <Filter className="h-4 w-4" /> Advanced Filters
-          </button>
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <button
+                className="fs-btn-secondary"
+                onClick={() => setFilterOpen(!filterOpen)}
+              >
+                <Filter className="h-4 w-4" />
+                {statusFilter !== 'All' && <span className="ml-1 text-xs px-1.5 py-0.5 rounded-full" style={{ background: 'var(--primary)', color: '#fff' }}>1</span>}
+                <span>Filters</span>
+                <ChevronDown className="h-3.5 w-3.5" />
+              </button>
+              {filterOpen && (
+                <div className="fs-dropdown" style={{ right: 0, left: 'auto' }}>
+                  <p className="text-xs font-semibold px-3 py-1.5" style={{ color: 'var(--text-muted)' }}>Status</p>
+                  {statusOptions.map(s => (
+                    <button
+                      key={s}
+                      onClick={() => { setStatusFilter(s); setFilterOpen(false); }}
+                      className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm transition-colors ${statusFilter === s ? 'bg-[var(--primary-soft)] text-[var(--primary)] font-medium' : 'text-[var(--text-secondary)] hover:bg-[var(--surface-muted)]'}`}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                  <div className="border-t mt-1 pt-1" style={{ borderColor: 'var(--border)' }}>
+                    <button onClick={() => { setStatusFilter('All'); setFilterOpen(false); }} className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm text-[var(--text-muted)] hover:bg-[var(--surface-muted)]">
+                      <X className="h-3.5 w-3.5" /> Clear filters
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
-        {error && <div className="text-red-400 bg-red-400/5 border border-red-400/20 p-4 rounded-lg text-sm text-center">{error}</div>}
-
-        <div className="bg-slate-900/60 border border-slate-800 rounded-xl overflow-hidden shadow-sm">
-          <table className="w-full text-left text-sm text-slate-300">
-            <thead className="bg-slate-800/50 text-xs uppercase text-slate-400 border-b border-slate-800">
-              <tr className="bg-slate-950/80">
-                <th className="px-6 py-4 font-semibold tracking-wider">SKU</th>
-                <th className="px-6 py-4 font-semibold tracking-wider">Name</th>
-                <th className="px-6 py-4 font-semibold tracking-wider">Category</th>
-                <th className="px-6 py-4 font-semibold tracking-wider">UOM</th>
-                <th className="px-6 py-4 font-semibold tracking-wider text-right">Current Stock</th>
-                <th className="px-6 py-4 font-semibold tracking-wider text-right">Reorder Point</th>
-                <th className="px-6 py-4 font-semibold tracking-wider text-center">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {products.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
-                    No products found. Add your first product to get started.
-                  </td>
-                </tr>
-              ) : (
-                products.map((p) => (
-                  <tr key={p.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors cursor-pointer group">
-                    <td className="px-6 py-4 font-mono text-emerald-400 text-xs">{p.sku}</td>
-                    <td className="px-6 py-4 font-medium text-white group-hover:text-emerald-400 transition-colors">{p.name}</td>
-                    <td className="px-6 py-4">
-                      <span className="inline-flex items-center rounded-md bg-slate-800 px-2 py-1 text-xs font-medium text-slate-300 ring-1 ring-inset ring-slate-700/50">
-                        {p.category?.name || 'N/A'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-slate-400 text-xs">{p.uom?.name || 'N/A'}</td>
-                    <td className={`px-6 py-4 font-semibold text-right ${p.current_stock! <= p.reorder_point ? 'text-amber-400' : 'text-white'}`}>{p.current_stock ?? 'N/A'}</td>
-                    <td className="px-6 py-4 text-slate-500 text-right">{p.reorder_point}</td>
-                    <td className="px-6 py-4 text-center">
-                      {p.status ? (
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                          p.status === 'Critical' ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 
-                          p.status === 'Low Stock' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 
-                          'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                        }`}>
-                          <span className={`h-1.5 w-1.5 rounded-full ${p.status === 'Critical' ? 'bg-red-500' : p.status === 'Low Stock' ? 'bg-amber-500' : 'bg-emerald-500'}`} />
-                          {p.status}
-                        </span>
-                      ) : (
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${p.is_active ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-500/10 text-slate-400 border border-slate-500/20'}`}>
-                          <span className={`h-1.5 w-1.5 rounded-full ${p.is_active ? 'bg-emerald-500' : 'bg-slate-500'}`} />
-                          {p.is_active ? 'Active' : 'Inactive'}
-                        </span>
-                      )}
-                    </td>
+        {/* Table */}
+        <div className="fs-surface overflow-hidden">
+          {loading ? (
+            <div className="p-12 text-center" style={{ color: 'var(--text-muted)' }}>Loading products…</div>
+          ) : filtered.length === 0 ? (
+            <EmptyState icon={<Package className="h-10 w-10" />} title="No products found" description="Add your first product to get started." action={<button className="fs-btn-primary" onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4" /> Add Product</button>} />
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="fs-table">
+                <thead>
+                  <tr>
+                    <th>Product</th>
+                    <th>SKU</th>
+                    <th>Category</th>
+                    <th>UOM</th>
+                    <th className="text-right">Stock</th>
+                    <th className="text-right">Reorder</th>
+                    <th>Status</th>
+                    <th>Actions</th>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                </thead>
+                <tbody>
+                  {filtered.map(p => (
+                    <tr key={p.id}>
+                      <td>
+                        <button className="text-left" onClick={() => { setSelectedProduct(p); setDrawerOpen(true); }}>
+                          <p className="font-medium hover:underline" style={{ color: 'var(--text-primary)' }}>{p.name}</p>
+                          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{p.category?.name}</p>
+                        </button>
+                      </td>
+                      <td><span className="font-mono text-xs" style={{ color: 'var(--primary)' }}>{p.sku}</span></td>
+                      <td>
+                        <span className="text-xs px-2 py-0.5 rounded-md" style={{ background: 'var(--surface-muted)', color: 'var(--text-secondary)' }}>
+                          {p.category?.name || 'N/A'}
+                        </span>
+                      </td>
+                      <td style={{ color: 'var(--text-secondary)', fontSize: 13 }}>{p.uom?.name || 'N/A'}</td>
+                      <td className="text-right">
+                        <span className="font-semibold" style={{ color: (p.current_stock ?? 0) <= p.reorder_point ? 'var(--danger)' : 'var(--text-primary)' }}>
+                          {p.current_stock ?? 0}
+                        </span>
+                      </td>
+                      <td className="text-right" style={{ color: 'var(--text-secondary)' }}>{p.reorder_point}</td>
+                      <td><StatusBadge status={p.status || (p.is_active ? 'Active' : 'Inactive')} size="sm" /></td>
+                      <td>
+                        <div className="flex gap-1">
+                          <button className="fs-btn-secondary" style={{ padding: '4px 8px', fontSize: 12 }} onClick={() => { setSelectedProduct(p); setDrawerOpen(true); }}>View</button>
+                          {p.is_active && <button className="fs-btn-secondary" style={{ padding: '4px 8px', fontSize: 12 }} onClick={() => handleDeactivate(p)}>Deactivate</button>}
+                          <button className="fs-btn-danger" style={{ padding: '4px 8px', fontSize: 12 }} onClick={() => setConfirmDelete(p)}>Delete</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Product Detail Drawer */}
+      <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title={selectedProduct?.name || ''} subtitle={selectedProduct?.sku}>
+        {selectedProduct && (
+          <div className="space-y-5">
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                { label: 'SKU', value: selectedProduct.sku },
+                { label: 'Status', value: selectedProduct.status || 'Active' },
+                { label: 'Category', value: selectedProduct.category?.name },
+                { label: 'UOM', value: selectedProduct.uom?.name },
+                { label: 'Current Stock', value: selectedProduct.current_stock ?? 0 },
+                { label: 'Reorder Point', value: selectedProduct.reorder_point },
+                { label: 'Reorder Quantity', value: selectedProduct.reorder_quantity },
+              ].map(f => (
+                <div key={f.label} className="p-3 rounded-xl" style={{ background: 'var(--surface-muted)' }}>
+                  <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>{f.label}</p>
+                  <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{f.value}</p>
+                </div>
+              ))}
+            </div>
+            <div className="pt-4 border-t" style={{ borderColor: 'var(--border)' }}>
+              <div className="flex gap-2">
+                <button className="fs-btn-primary flex-1" onClick={() => router.push('/operations')}>Create Operation</button>
+                <button className="fs-btn-secondary flex-1" onClick={() => router.push('/inventory')}>View Inventory</button>
+              </div>
+            </div>
+            <div className="p-4 rounded-xl border" style={{ borderColor: 'var(--border)', background: 'var(--surface-muted)' }}>
+              <p className="text-xs font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>Stock Health</p>
+              <StatusBadge status={selectedProduct.status || 'Healthy'} />
+            </div>
+          </div>
+        )}
+      </Drawer>
+
+      {/* Create Product Modal */}
+      <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Add Product" subtitle="Create a new product in the catalog">
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="col-span-2">
+              <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Product Name *</label>
+              <input className="fs-input" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. Wireless Keyboard" required />
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>SKU *</label>
+              <input className="fs-input" value={form.sku} onChange={e => setForm({ ...form, sku: e.target.value })} placeholder="e.g. ELEC-001" required />
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Category</label>
+              <select className="fs-select" value={form.category_id} onChange={e => setForm({ ...form, category_id: e.target.value })}>
+                {DEMO_CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Unit of Measure</label>
+              <select className="fs-select" value={form.uom_id} onChange={e => setForm({ ...form, uom_id: e.target.value })}>
+                {DEMO_UOMS.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Reorder Point</label>
+              <input type="number" className="fs-input" value={form.reorder_point} onChange={e => setForm({ ...form, reorder_point: +e.target.value })} />
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Reorder Quantity</label>
+              <input type="number" className="fs-input" value={form.reorder_quantity} onChange={e => setForm({ ...form, reorder_quantity: +e.target.value })} />
+            </div>
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button className="fs-btn-secondary flex-1" onClick={() => setCreateOpen(false)}>Cancel</button>
+            <button className="fs-btn-primary flex-1" onClick={handleCreate} disabled={!form.name || !form.sku || formLoading}>
+              {formLoading ? 'Creating…' : 'Create Product'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Confirm Delete */}
+      {confirmDelete && (
+        <Modal open={!!confirmDelete} onClose={() => setConfirmDelete(null)} title="Delete Product">
+          <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
+            Are you sure you want to delete <strong>{confirmDelete.name}</strong>? This action cannot be undone.
+          </p>
+          <div className="flex gap-3">
+            <button className="fs-btn-secondary flex-1" onClick={() => setConfirmDelete(null)}>Cancel</button>
+            <button className="fs-btn-danger flex-1" onClick={() => handleDelete(confirmDelete)}>Delete Product</button>
+          </div>
+        </Modal>
+      )}
     </AppShell>
   );
 }

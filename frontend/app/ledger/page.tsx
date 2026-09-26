@@ -1,202 +1,260 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { AppShell } from '@/components/layout/AppShell';
+import { MetricCard } from '@/components/ui/UI';
+import { Drawer } from '@/components/ui/Overlay';
+import { useToast } from '@/lib/ui/ToastProvider';
+import { BookOpenText, Search, Download, Lock, ShieldCheck } from 'lucide-react';
 import { fetchLedger, LedgerEntry } from '@/services/ledger.service';
-import { Loader2, ShieldCheck, Database, Search, Filter, Activity, TrendingUp, TrendingDown, RefreshCcw } from 'lucide-react';
+
+const TYPES_COLOR: Record<string, string> = {
+  RECEIPT: 'fs-badge-success',
+  DELIVERY: 'fs-badge-info',
+  TRANSFER_IN: 'fs-badge-primary',
+  TRANSFER_OUT: 'fs-badge-primary',
+  ADJUSTMENT_IN: 'fs-badge-warning',
+  ADJUSTMENT_OUT: 'fs-badge-warning',
+};
 
 export default function LedgerPage() {
   const router = useRouter();
   const { token, isLoading: authLoading, isAuthenticated } = useAuth();
+  const toast = useToast();
+
   const [entries, setEntries] = useState<LedgerEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [typeFilter, setTypeFilter] = useState('All');
+  const [selected, setSelected] = useState<LedgerEntry | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) router.push('/login');
-  }, [authLoading, isAuthenticated, router]);
+  useEffect(() => { if (!authLoading && !isAuthenticated) router.push('/login'); }, [authLoading, isAuthenticated, router]);
 
-  useEffect(() => {
-    async function loadData() {
-      if (!token) return;
-      try {
-        setLoading(true);
-        const data = await fetchLedger(token);
-        setEntries(data);
-        setError(null);
-      } catch {
-        setError('Please check the API connection and try again.');
-      } finally {
-        setLoading(false);
-      }
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await fetchLedger(token!);
+      setEntries(data);
+    } catch {
+      toast.error('Unable to load ledger', 'Check the connection and try again.');
+    } finally {
+      setLoading(false);
     }
-    if (isAuthenticated) loadData();
-  }, [isAuthenticated, token]);
+  }, [token, toast]);
 
-  if (authLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950">
-        <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
-      </div>
-    );
-  }
+  useEffect(() => { if (isAuthenticated) loadData(); }, [isAuthenticated, loadData]);
 
-  const getTypeIcon = (type: string) => {
-    if (type.includes('IN') || type === 'RECEIPT') return <TrendingUp className="h-4 w-4 text-emerald-400" />;
-    if (type.includes('OUT') || type === 'DELIVERY') return <TrendingDown className="h-4 w-4 text-red-400" />;
-    return <RefreshCcw className="h-4 w-4 text-blue-400" />;
+  const filtered = entries.filter(e => {
+    const matchSearch = !searchQuery || e.product.toLowerCase().includes(searchQuery.toLowerCase()) || e.id.toLowerCase().includes(searchQuery.toLowerCase()) || e.sku.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchType = typeFilter === 'All' || e.type === typeFilter;
+    return matchSearch && matchType;
+  });
+
+  const exportCSV = () => {
+    const rows = [['Event ID', 'Timestamp', 'Product', 'SKU', 'Type', 'Quantity', 'Before', 'After', 'Warehouse', 'Location', 'Performed By']];
+    filtered.forEach(e => rows.push([e.id, e.timestamp, e.product, e.sku, e.type, String(e.quantity), String(e.before), String(e.after), e.warehouse, e.location, e.performed_by]));
+    const csv = rows.map(r => r.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'ledger.csv'; a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Export complete', 'ledger.csv downloaded.');
   };
 
-  const getTypeColor = (type: string) => {
-    if (type.includes('IN') || type === 'RECEIPT') return 'text-emerald-400';
-    if (type.includes('OUT') || type === 'DELIVERY') return 'text-red-400';
-    return 'text-blue-400';
-  };
+  if (authLoading) return null;
+
+  const totalIn = entries.filter(e => e.quantity > 0).reduce((a, e) => a + e.quantity, 0);
+  const totalOut = entries.filter(e => e.quantity < 0).reduce((a, e) => a + Math.abs(e.quantity), 0);
+  const todayCount = entries.filter(e => new Date(e.timestamp).toDateString() === new Date().toDateString()).length;
+  const TYPES = ['All', 'RECEIPT', 'DELIVERY', 'TRANSFER_IN', 'TRANSFER_OUT', 'ADJUSTMENT_IN', 'ADJUSTMENT_OUT'];
 
   return (
-    <AppShell title="Immutable Ledger" activeItem="Ledger">
-      <div className="space-y-6">
-        {/* Header Section */}
-        <div className="relative overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/80 p-6 sm:p-8 shadow-xl">
-          <div className="absolute right-0 top-0 opacity-10 pointer-events-none">
-            <Database className="w-64 h-64 -mt-10 -mr-10 text-emerald-500" />
-          </div>
-          <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-2">
-              <ShieldCheck className="h-6 w-6 text-emerald-400" />
-              <h2 className="text-2xl font-bold text-white tracking-tight">Inventory Ledger</h2>
+    <AppShell title="Ledger">
+      <div className="fs-page-inner space-y-6">
+
+        {/* Header */}
+        <div>
+          <p className="text-sm mb-1" style={{ color: 'var(--text-muted)' }}>Operations / Ledger</p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Inventory Ledger</h1>
+              <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Immutable record of every stock-changing event.</p>
             </div>
-            <p className="text-sm text-slate-400 max-w-2xl">
-              The ledger represents the immutable, append-only history of all inventory movements. 
-              Records cannot be altered or deleted, ensuring complete auditability.
-            </p>
+            <button className="fs-btn-secondary" onClick={exportCSV}><Download className="h-4 w-4" /> Export</button>
           </div>
         </div>
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-          <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-4">
-            <div className="text-xs text-slate-500 mb-1">Total Entries</div>
-            <div className="text-xl font-bold text-white">8,492</div>
+        {/* Immutable statement */}
+        <div className="flex items-center gap-3 p-4 rounded-xl" style={{ background: 'var(--primary-soft)', border: '1px solid var(--primary)' }}>
+          <ShieldCheck className="h-5 w-5 flex-shrink-0" style={{ color: 'var(--primary)' }} />
+          <div>
+            <p className="text-sm font-semibold" style={{ color: 'var(--primary)' }}>Every stock movement is traceable.</p>
+            <p className="text-xs" style={{ color: 'var(--primary)' }}>This is an append-only, immutable record. Entries cannot be edited or deleted.</p>
           </div>
-          <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-4">
-            <div className="text-xs text-slate-500 mb-1">Stock In (30d)</div>
-            <div className="text-xl font-bold text-emerald-400">+12,450</div>
+          <span className="ml-auto flex-shrink-0 fs-badge fs-badge-primary"><Lock className="h-3 w-3 mr-1" />IMMUTABLE</span>
+        </div>
+
+        {/* Metrics */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <MetricCard label="Total Events" value={entries.length} icon={<BookOpenText className="h-4 w-4" />} />
+          <MetricCard label="Stock In" value={totalIn.toLocaleString()} color="success" />
+          <MetricCard label="Stock Out" value={totalOut.toLocaleString()} color="warning" />
+          <MetricCard label="Transfers" value={entries.filter(e => e.type.startsWith('TRANSFER')).length} color="primary" />
+          <MetricCard label="Today&apos;s Events" value={todayCount} />
+        </div>
+
+        {/* Toolbar */}
+        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: 'var(--text-muted)' }} />
+            <input type="text" placeholder="Search by product, SKU or event ID…" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="fs-input pl-9" />
           </div>
-          <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-4">
-            <div className="text-xs text-slate-500 mb-1">Stock Out (30d)</div>
-            <div className="text-xl font-bold text-red-400">-9,230</div>
-          </div>
-          <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-4">
-            <div className="text-xs text-slate-500 mb-1">Transfers</div>
-            <div className="text-xl font-bold text-blue-400">1,420</div>
-          </div>
-          <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-4">
-            <div className="text-xs text-slate-500 mb-1">Adjustments</div>
-            <div className="text-xl font-bold text-amber-400">142</div>
-          </div>
-          <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-4">
-            <div className="text-xs text-slate-500 mb-1">Today&apos;s Events</div>
-            <div className="text-xl font-bold text-white">24</div>
+          <div className="flex flex-wrap gap-1">
+            {TYPES.map(t => (
+              <button
+                key={t}
+                onClick={() => setTypeFilter(t)}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                style={{
+                  background: typeFilter === t ? 'var(--primary)' : 'var(--surface)',
+                  color: typeFilter === t ? '#fff' : 'var(--text-secondary)',
+                  border: `1px solid ${typeFilter === t ? 'var(--primary)' : 'var(--border)'}`,
+                }}
+              >
+                {t === 'All' ? 'All Types' : t.replace('_', ' ')}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row justify-between gap-4 items-center">
-          <div className="relative w-full sm:w-96">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-            <input 
-              type="text" 
-              placeholder="Search by Event ID, Product, or SKU..." 
-              className="bg-slate-900 border border-slate-800 rounded-lg pl-9 pr-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 w-full"
-            />
-          </div>
-          <button className="w-full sm:w-auto flex justify-center items-center gap-2 px-4 py-2.5 border border-slate-800 bg-slate-900/60 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800 transition-colors">
-            <Filter className="h-4 w-4" /> Advanced Filters
-          </button>
-        </div>
-
-        {/* Ledger Table */}
-        <div className="rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden shadow-sm">
-          {error && <div className="p-8 text-center text-red-400 bg-red-400/5">{error}</div>}
-          
-          {!error && loading ? (
-            <div className="p-12 text-center">
-              <Loader2 className="h-8 w-8 animate-spin text-emerald-500 mx-auto mb-4" />
-              <p className="text-slate-400">Loading immutable ledger...</p>
-            </div>
-          ) : !error && (
+        {/* Table */}
+        <div className="fs-surface overflow-hidden">
+          {loading ? (
+            <div className="p-12 text-center" style={{ color: 'var(--text-muted)' }}>Loading ledger…</div>
+          ) : filtered.length === 0 ? (
+            <div className="p-12 text-center" style={{ color: 'var(--text-muted)' }}>No ledger entries match your search.</div>
+          ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm text-slate-300 whitespace-nowrap">
-                <thead className="bg-slate-950/80 text-[11px] uppercase tracking-wider text-slate-500 border-b border-slate-800">
+              <table className="fs-table">
+                <thead>
                   <tr>
-                    <th className="px-5 py-4 font-semibold">Event ID / Time</th>
-                    <th className="px-5 py-4 font-semibold">Operation</th>
-                    <th className="px-5 py-4 font-semibold">Product & Location</th>
-                    <th className="px-5 py-4 font-semibold text-right">Qty</th>
-                    <th className="px-5 py-4 font-semibold text-right">Balance</th>
-                    <th className="px-5 py-4 font-semibold">Performed By</th>
+                    <th>Event ID</th>
+                    <th>Timestamp</th>
+                    <th>Product</th>
+                    <th>Type</th>
+                    <th className="text-right">Qty</th>
+                    <th className="text-right">Before</th>
+                    <th className="text-right">After</th>
+                    <th>Warehouse / Location</th>
+                    <th>Performed By</th>
+                    <th></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60 font-mono">
-                  {entries.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="px-5 py-12 text-center font-sans text-slate-500">
-                        <Activity className="h-8 w-8 text-slate-700 mx-auto mb-3" />
-                        <p>No ledger events found.</p>
+                <tbody>
+                  {filtered.map(e => (
+                    <tr key={e.id}>
+                      <td>
+                        <span className="font-mono text-xs font-semibold" style={{ color: 'var(--primary)' }}>{e.id}</span>
+                      </td>
+                      <td style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{new Date(e.timestamp).toLocaleString()}</td>
+                      <td>
+                        <p className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>{e.product}</p>
+                        <p className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>{e.sku}</p>
+                      </td>
+                      <td>
+                        <span className={`fs-badge ${TYPES_COLOR[e.type] || 'fs-badge-neutral'}`}>
+                          {e.type.replace('_', ' ')}
+                        </span>
+                      </td>
+                      <td className="text-right font-semibold" style={{ color: e.quantity > 0 ? 'var(--success)' : 'var(--danger)' }}>
+                        {e.quantity > 0 ? '+' : ''}{e.quantity}
+                      </td>
+                      <td className="text-right" style={{ color: 'var(--text-secondary)' }}>{e.before}</td>
+                      <td className="text-right font-semibold" style={{ color: 'var(--text-primary)' }}>{e.after}</td>
+                      <td>
+                        <p className="text-sm" style={{ color: 'var(--text-primary)' }}>{e.warehouse}</p>
+                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{e.location}</p>
+                      </td>
+                      <td style={{ color: 'var(--text-secondary)', fontSize: 13 }}>{e.performed_by}</td>
+                      <td>
+                        {/* IMMUTABLE: View Details ONLY — No edit/delete */}
+                        <button
+                          className="fs-btn-secondary"
+                          style={{ padding: '4px 8px', fontSize: 12 }}
+                          onClick={() => { setSelected(e); setDrawerOpen(true); }}
+                        >
+                          View
+                        </button>
                       </td>
                     </tr>
-                  ) : (
-                    entries.map((entry) => (
-                      <tr key={entry.id} className="hover:bg-slate-800/40 transition-colors cursor-pointer group">
-                        <td className="px-5 py-3">
-                          <div className="text-emerald-400 font-medium text-xs mb-1">{entry.id}</div>
-                          <div className="text-[10px] text-slate-500 font-sans">
-                            {new Date(entry.timestamp).toLocaleString(undefined, {
-                              year: 'numeric', month: 'short', day: 'numeric', 
-                              hour: '2-digit', minute: '2-digit', second: '2-digit'
-                            })}
-                          </div>
-                        </td>
-                        <td className="px-5 py-3">
-                          <div className="flex items-center gap-2 mb-1">
-                            {getTypeIcon(entry.type)}
-                            <span className={`text-[11px] font-bold tracking-wider ${getTypeColor(entry.type)}`}>
-                              {entry.type}
-                            </span>
-                          </div>
-                          <div className="text-[10px] text-slate-500">{entry.operation_id}</div>
-                        </td>
-                        <td className="px-5 py-3 font-sans">
-                          <div className="font-medium text-slate-200 text-sm truncate max-w-[200px]">{entry.product}</div>
-                          <div className="text-[11px] text-slate-500 font-mono mt-0.5">{entry.sku} | {entry.location}</div>
-                        </td>
-                        <td className={`px-5 py-3 text-right font-medium text-sm ${entry.quantity > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                          {entry.quantity > 0 ? '+' : ''}{entry.quantity}
-                        </td>
-                        <td className="px-5 py-3 text-right text-sm">
-                          <div className="flex flex-col items-end">
-                            <span className="text-slate-200 font-medium">{entry.after}</span>
-                            <span className="text-[10px] text-slate-500 border-t border-slate-700 pt-0.5 mt-0.5 inline-block min-w-[30px]">
-                              prev: {entry.before}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-5 py-3 font-sans">
-                          <div className="text-sm text-slate-300">{entry.performed_by}</div>
-                          <div className="text-[11px] text-slate-500 truncate max-w-[150px]" title={entry.reason}>{entry.reason}</div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
+                  ))}
                 </tbody>
               </table>
             </div>
           )}
         </div>
+
+        {/* Immutable footer note */}
+        <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+          <Lock className="h-3.5 w-3.5" />
+          <span>Ledger records are immutable and append-only. No entries can be edited or deleted.</span>
+        </div>
       </div>
+
+      {/* Event Detail Drawer — View Only */}
+      <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title={`Event ${selected?.id || ''}`} subtitle="Immutable ledger event" width={540}>
+        {selected && (
+          <div className="space-y-4">
+            {/* Immutable badge */}
+            <div className="flex items-center gap-2 p-3 rounded-xl" style={{ background: 'var(--primary-soft)' }}>
+              <Lock className="h-4 w-4" style={{ color: 'var(--primary)' }} />
+              <span className="text-sm font-semibold" style={{ color: 'var(--primary)' }}>IMMUTABLE EVENT — Append-Only Record</span>
+            </div>
+
+            {/* Details */}
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { label: 'Event ID', value: selected.id },
+                { label: 'Timestamp', value: new Date(selected.timestamp).toLocaleString() },
+                { label: 'Product', value: selected.product },
+                { label: 'SKU', value: selected.sku },
+                { label: 'Event Type', value: selected.type },
+                { label: 'Quantity Change', value: `${selected.quantity > 0 ? '+' : ''}${selected.quantity}` },
+                { label: 'Stock Before', value: selected.before },
+                { label: 'Stock After', value: selected.after },
+                { label: 'Warehouse', value: selected.warehouse },
+                { label: 'Location', value: selected.location },
+                { label: 'Performed By', value: selected.performed_by },
+                { label: 'Reference', value: selected.reference || '—' },
+              ].map(f => (
+                <div key={f.label} className="p-3 rounded-xl" style={{ background: 'var(--surface-muted)' }}>
+                  <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>{f.label}</p>
+                  <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{f.value}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Link to operation */}
+            {selected.operation_id && (
+              <button
+                className="fs-btn-secondary w-full"
+                onClick={() => { setDrawerOpen(false); router.push('/operations'); }}
+              >
+                View Source Operation: {selected.operation_id}
+              </button>
+            )}
+
+            {/* Explicit: No edit / delete */}
+            <div className="p-3 rounded-xl text-xs" style={{ background: 'var(--surface-muted)', color: 'var(--text-muted)', textAlign: 'center' }}>
+              <Lock className="inline h-3.5 w-3.5 mr-1" />
+              This record is immutable. Edit and delete actions are not available.
+            </div>
+          </div>
+        )}
+      </Drawer>
     </AppShell>
   );
 }
