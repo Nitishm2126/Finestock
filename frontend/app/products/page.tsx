@@ -25,8 +25,8 @@ export default function ProductsPage() {
         setLoading(true);
         const data = await fetchProducts(token);
         setProducts(data);
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err) {
+        setError((err as Error).message);
       } finally {
         setLoading(false);
       }

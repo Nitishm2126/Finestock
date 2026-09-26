@@ -31,12 +31,6 @@ export default function UsersPage() {
     }
   }, [isLoading, isAuthenticated, router]);
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchData();
-    }
-  }, [isAuthenticated]);
-
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -53,6 +47,13 @@ export default function UsersPage() {
     }
   };
 
+  useEffect(() => {
+    if (isAuthenticated) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      fetchData();
+    }
+  }, [isAuthenticated]);
+
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -60,8 +61,8 @@ export default function UsersPage() {
       setIsAdding(false);
       setFormData({ email: '', first_name: '', last_name: '', password: '', role_id: '' });
       fetchData();
-    } catch (error: any) {
-      alert(error.message);
+    } catch (error) {
+      alert((error as Error).message);
     }
   };
 

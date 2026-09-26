@@ -25,8 +25,8 @@ export default function WarehousesPage() {
         setLoading(true);
         const data = await fetchWarehouses(token);
         setWarehouses(data);
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err) {
+        setError((err as Error).message);
       } finally {
         setLoading(false);
       }

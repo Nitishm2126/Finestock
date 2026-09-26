@@ -25,8 +25,8 @@ export default function InventoryPage() {
         setLoading(true);
         const data = await fetchInventory(token);
         setPositions(data);
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err) {
+        setError((err as Error).message);
       } finally {
         setLoading(false);
       }

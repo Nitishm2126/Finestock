@@ -18,6 +18,7 @@ export async function fetchWarehouses(token: string): Promise<Warehouse[]> {
   return data.warehouses;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function createWarehouse(token: string, data: any): Promise<Warehouse> {
   const res = await fetch(`${API_BASE_URL}/warehouses/`, {
     method: 'POST',

@@ -38,8 +38,8 @@ export default function DashboardPage() {
         const data = await fetchDashboardSummary(token);
         setSummary(data);
         setError(null);
-      } catch (err: any) {
-        setError(err.message || 'Failed to load dashboard summary');
+      } catch (err) {
+        setError((err as Error).message || 'Failed to load dashboard summary');
       } finally {
         setLoading(false);
       }
@@ -76,7 +76,7 @@ export default function DashboardPage() {
               Welcome back, {user.first_name} {user.last_name}
             </h2>
             <p className="mt-2 text-sm sm:text-base text-slate-300 leading-relaxed">
-              Here's a summary of your organization's inventory.
+              Here&apos;s a summary of your organization&apos;s inventory.
             </p>
           </div>
           <div className="pointer-events-none absolute -right-12 -top-12 h-64 w-64 rounded-full bg-emerald-500/5 blur-3xl" />
