@@ -176,7 +176,7 @@ export default function AdjustmentsPage() {
     const matchSearch =
       !q ||
       a.adjustment_number.toLowerCase().includes(q) ||
-      (a.product?.name && a.product.name.toLowerCase().includes(q)) ||
+      ((a.product?.name || a.product_name || a.sku || '').toLowerCase().includes(q)) ||
       (a.reason && a.reason.toLowerCase().includes(q));
 
     return matchStatus && matchSearch;
@@ -325,13 +325,13 @@ export default function AdjustmentsPage() {
                           </span>
                         </td>
                         <td className="text-sm font-semibold text-[var(--text-primary)]">
-                          {adj.product?.name}
+                          {adj.product?.name || adj.product_name || 'Stock Item'}
                           <span className="block text-[10px] font-mono text-[var(--text-muted)]">
-                            {adj.product?.sku}
+                            {adj.product?.sku || adj.sku || 'N/A'}
                           </span>
                         </td>
                         <td className="text-xs text-[var(--text-secondary)]">
-                          {adj.warehouse?.name} / {adj.location?.name}
+                          {adj.warehouse?.name || adj.warehouse_name || 'Main WH'} / {adj.location?.name || adj.location_name || 'Default Bay'}
                         </td>
                         <td className="text-xs font-medium">{Number(adj.system_quantity)}</td>
                         <td className="text-xs font-bold">{Number(adj.physical_count)}</td>
@@ -581,15 +581,15 @@ export default function AdjustmentsPage() {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between py-1 border-b" style={{ borderColor: 'var(--border)' }}>
                   <span className="text-[var(--text-muted)]">Product:</span>
-                  <span className="font-semibold text-[var(--text-primary)]">{selectedAdj.product?.name}</span>
+                  <span className="font-semibold text-[var(--text-primary)]">{selectedAdj.product?.name || selectedAdj.product_name || selectedAdj.sku}</span>
                 </div>
                 <div className="flex justify-between py-1 border-b" style={{ borderColor: 'var(--border)' }}>
                   <span className="text-[var(--text-muted)]">Warehouse:</span>
-                  <span className="font-semibold text-[var(--text-primary)]">{selectedAdj.warehouse?.name}</span>
+                  <span className="font-semibold text-[var(--text-primary)]">{selectedAdj.warehouse?.name || selectedAdj.warehouse_name || 'Main Warehouse'}</span>
                 </div>
                 <div className="flex justify-between py-1 border-b" style={{ borderColor: 'var(--border)' }}>
                   <span className="text-[var(--text-muted)]">Location:</span>
-                  <span className="font-semibold text-[var(--text-primary)]">{selectedAdj.location?.name}</span>
+                  <span className="font-semibold text-[var(--text-primary)]">{selectedAdj.location?.name || selectedAdj.location_name || 'Default Bay'}</span>
                 </div>
               </div>
 

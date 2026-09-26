@@ -215,7 +215,7 @@ export default function ReceiptsPage() {
     const matchSearch =
       !q ||
       r.receipt_number.toLowerCase().includes(q) ||
-      (r.supplier?.name && r.supplier.name.toLowerCase().includes(q)) ||
+      ((r.supplier?.name || r.supplier_name || '').toLowerCase().includes(q)) ||
       (r.reference_number && r.reference_number.toLowerCase().includes(q));
 
     return matchStatus && matchSearch;
@@ -371,10 +371,10 @@ export default function ReceiptsPage() {
                           )}
                         </td>
                         <td className="text-sm font-semibold text-[var(--text-primary)]">
-                          {rec.supplier?.name || 'Standard Vendor'}
+                          {rec.supplier?.name || rec.supplier_name || 'Standard Vendor'}
                         </td>
                         <td className="text-xs text-[var(--text-secondary)]">
-                          {rec.warehouse?.name || 'Main Warehouse'}
+                          {rec.warehouse?.name || rec.warehouse_name || 'Main Warehouse'}
                         </td>
                         <td>
                           <span className="text-xs font-semibold px-2 py-0.5 rounded bg-[var(--surface-muted)] border border-[var(--border)]">
@@ -579,7 +579,7 @@ export default function ReceiptsPage() {
                           }}
                           className="fs-input text-xs"
                         >
-                          {availableLocations.map(loc => (
+                          {availableLocations.map((loc: any) => (
                             <option key={loc.id} value={loc.id}>{loc.name}</option>
                           ))}
                         </select>
@@ -635,8 +635,8 @@ export default function ReceiptsPage() {
                 return (
                   <div key={line.id} className="p-3 rounded-lg border bg-[var(--surface-muted)] flex items-center justify-between gap-4" style={{ borderColor: 'var(--border)' }}>
                     <div>
-                      <p className="text-sm font-semibold text-[var(--text-primary)]">{line.product?.name || 'Item'}</p>
-                      <p className="text-xs font-mono text-[var(--text-muted)]">SKU: {line.product?.sku}</p>
+                      <p className="text-sm font-semibold text-[var(--text-primary)]">{line.product?.name || line.product_name || 'Item'}</p>
+                      <p className="text-xs font-mono text-[var(--text-muted)]">SKU: {line.product?.sku || line.sku || 'N/A'}</p>
                       <p className="text-xs text-[var(--text-secondary)] mt-1">
                         Expected: <strong>{line.expected_quantity}</strong> | Previously Received: {line.received_quantity}
                       </p>
@@ -708,11 +708,11 @@ export default function ReceiptsPage() {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between py-1 border-b" style={{ borderColor: 'var(--border)' }}>
                   <span className="text-[var(--text-muted)]">Supplier:</span>
-                  <span className="font-semibold text-[var(--text-primary)]">{selectedReceipt.supplier?.name}</span>
+                  <span className="font-semibold text-[var(--text-primary)]">{selectedReceipt.supplier?.name || selectedReceipt.supplier_name || 'N/A'}</span>
                 </div>
                 <div className="flex justify-between py-1 border-b" style={{ borderColor: 'var(--border)' }}>
                   <span className="text-[var(--text-muted)]">Warehouse:</span>
-                  <span className="font-semibold text-[var(--text-primary)]">{selectedReceipt.warehouse?.name}</span>
+                  <span className="font-semibold text-[var(--text-primary)]">{selectedReceipt.warehouse?.name || selectedReceipt.warehouse_name || 'N/A'}</span>
                 </div>
                 <div className="flex justify-between py-1 border-b" style={{ borderColor: 'var(--border)' }}>
                   <span className="text-[var(--text-muted)]">Created Date:</span>
@@ -729,12 +729,12 @@ export default function ReceiptsPage() {
                   {selectedReceipt.lines.map(line => (
                     <div key={line.id} className="p-3 rounded-lg border bg-[var(--surface-muted)] text-xs space-y-1" style={{ borderColor: 'var(--border)' }}>
                       <div className="flex justify-between font-semibold text-sm text-[var(--text-primary)]">
-                        <span>{line.product?.name}</span>
+                        <span>{line.product?.name || line.product_name || 'Item'}</span>
                         <span>{line.received_quantity} / {line.expected_quantity} units</span>
                       </div>
                       <div className="flex justify-between text-[var(--text-muted)]">
-                        <span>SKU: {line.product?.sku}</span>
-                        <span>Location: {line.destination_location?.name || 'Default Bay'}</span>
+                        <span>SKU: {line.product?.sku || line.sku || 'N/A'}</span>
+                        <span>Location: {line.destination_location?.name || (line as any).destination_location_name || 'Default Bay'}</span>
                       </div>
                     </div>
                   ))}

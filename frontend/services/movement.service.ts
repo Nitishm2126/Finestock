@@ -11,14 +11,30 @@ export interface Movement {
   location_id: string;
   location_name: string;
   transaction_type: string;
+  event_type?: string;
   reference_type?: string;
   reference_id?: string;
+  reference_number?: string;
   quantity_delta: number;
   quantity_before: number;
   quantity_after: number;
+  balance_after?: number;
   actor_name?: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   metadata?: any;
+}
+
+export type MovementEvent = Movement;
+
+export interface MovementFilterParams {
+  product_id?: string;
+  warehouse_id?: string;
+  location_id?: string;
+  transaction_type?: string;
+  event_type?: string;
+  search?: string;
+  skip?: number;
+  limit?: number;
 }
 
 const DEFAULT_DEMO_MOVEMENTS: Movement[] = [
@@ -94,18 +110,15 @@ const DEFAULT_DEMO_MOVEMENTS: Movement[] = [
 
 export async function fetchMovements(
   token?: string,
-  params?: {
-    product_id?: string;
-    warehouse_id?: string;
-    location_id?: string;
-    transaction_type?: string;
-    search?: string;
-  }
+  params?: MovementFilterParams
 ): Promise<Movement[]> {
   if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true' || !token) {
     let list = [...DEFAULT_DEMO_MOVEMENTS];
     if (params?.product_id) list = list.filter(m => m.product_id === params.product_id);
-    if (params?.transaction_type) list = list.filter(m => m.transaction_type === params.transaction_type);
+    const type = params?.event_type || params?.transaction_type;
+    if (type && type !== 'ALL') {
+      list = list.filter(m => m.transaction_type === type || m.event_type === type);
+    }
     if (params?.search) {
       const s = params.search.toLowerCase();
       list = list.filter(
@@ -115,20 +128,32 @@ export async function fetchMovements(
           (m.reference_id && m.reference_id.toLowerCase().includes(s))
       );
     }
-    return list;
+    return list.map(m => ({
+      ...m,
+      event_type: m.event_type || m.transaction_type,
+      balance_after: m.balance_after ?? m.quantity_after,
+    }));
   }
 
   const queryParams = new URLSearchParams();
   if (params?.product_id) queryParams.set('product_id', params.product_id);
   if (params?.warehouse_id) queryParams.set('warehouse_id', params.warehouse_id);
   if (params?.location_id) queryParams.set('location_id', params.location_id);
-  if (params?.transaction_type) queryParams.set('transaction_type', params.transaction_type);
+  const typeParam = params?.event_type || params?.transaction_type;
+  if (typeParam && typeParam !== 'ALL') queryParams.set('transaction_type', typeParam);
   if (params?.search) queryParams.set('search', params.search);
+  if (params?.limit) queryParams.set('limit', String(params.limit));
+  if (params?.skip) queryParams.set('skip', String(params.skip));
 
   const res = await fetch(`${API_BASE_URL}/movements/?${queryParams.toString()}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) throw new Error('Failed to fetch movements');
   const data = await res.json();
-  return data.movements;
+  return (data.movements || []).map((m: any) => ({
+    ...m,
+    event_type: m.event_type || m.transaction_type,
+    reference_number: m.reference_id,
+    balance_after: m.balance_after ?? m.quantity_after,
+  }));
 }

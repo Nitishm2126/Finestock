@@ -6,6 +6,7 @@ export interface TransferLine {
   product_id: string;
   sku?: string;
   product_name?: string;
+  product?: { name: string; sku: string };
   quantity: number;
 }
 
@@ -15,12 +16,16 @@ export interface Transfer {
   transfer_number: string;
   source_warehouse_id: string;
   source_warehouse_name?: string;
+  source_warehouse?: { name: string; code?: string };
   source_location_id: string;
   source_location_name?: string;
+  source_location?: { name: string; code?: string };
   destination_warehouse_id: string;
   destination_warehouse_name?: string;
+  destination_warehouse?: { name: string; code?: string };
   destination_location_id: string;
   destination_location_name?: string;
+  destination_location?: { name: string; code?: string };
   status: 'DRAFT' | 'REQUESTED' | 'APPROVED' | 'IN_TRANSIT' | 'DONE' | 'CANCELLED';
   reason: string;
   requested_by?: string;
@@ -150,10 +155,12 @@ export async function fetchTransfers(
 }
 
 export async function createTransfer(
-  token: string | undefined,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  payload: any
+  arg1?: any,
+  arg2?: any
 ): Promise<Transfer> {
+  const token = (typeof arg1 === 'string' && (arg1.startsWith('eyJ') || arg1.length > 50)) ? arg1 : (typeof arg2 === 'string' ? arg2 : undefined);
+  const payload = typeof arg1 === 'object' ? arg1 : arg2;
+
   if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true' || !token) {
     const list = getDemoTransfers();
     const newTrf: Transfer = {
@@ -190,7 +197,10 @@ export async function createTransfer(
   return res.json();
 }
 
-export async function approveTransfer(token: string | undefined, transferId: string): Promise<Transfer> {
+export async function approveTransfer(arg1?: string, arg2?: string): Promise<Transfer> {
+  const token = (arg1 && (arg1.startsWith('eyJ') || arg1.length > 50)) ? arg1 : arg2;
+  const transferId = (arg1 && (arg1.startsWith('eyJ') || arg1.length > 50)) ? arg2 || '' : arg1 || '';
+
   if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true' || !token) {
     const list = getDemoTransfers();
     const updated = list.map(t =>
@@ -215,7 +225,10 @@ export async function approveTransfer(token: string | undefined, transferId: str
   return res.json();
 }
 
-export async function executeTransfer(token: string | undefined, transferId: string): Promise<Transfer> {
+export async function executeTransfer(arg1?: string, arg2?: string): Promise<Transfer> {
+  const token = (arg1 && (arg1.startsWith('eyJ') || arg1.length > 50)) ? arg1 : arg2;
+  const transferId = (arg1 && (arg1.startsWith('eyJ') || arg1.length > 50)) ? arg2 || '' : arg1 || '';
+
   if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true' || !token) {
     const list = getDemoTransfers();
     const updated = list.map(t =>
@@ -240,16 +253,19 @@ export async function executeTransfer(token: string | undefined, transferId: str
   return res.json();
 }
 
-export async function cancelTransfer(token: string | undefined, transferId: string): Promise<Transfer> {
+export async function cancelTransfer(arg1?: string, arg2?: string): Promise<Transfer> {
+  const token = (arg1 && (arg1.startsWith('eyJ') || arg1.length > 50)) ? arg1 : arg2;
+  const transferId = (arg1 && (arg1.startsWith('eyJ') || arg1.length > 50)) ? arg2 || '' : arg1 || '';
+
   if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true' || !token) {
     const list = getDemoTransfers();
-    const updated = list.map(t =>
-      t.id === transferId
-        ? { ...t, status: 'CANCELLED' as const, updated_at: new Date().toISOString() }
-        : t
+    const updated = list.map(d =>
+      d.id === transferId
+        ? { ...d, status: 'CANCELLED' as const, updated_at: new Date().toISOString() }
+        : d
     );
     saveDemoTransfers(updated);
-    const item = updated.find(t => t.id === transferId);
+    const item = updated.find(d => d.id === transferId);
     if (!item) throw new Error('Transfer not found');
     return item;
   }
@@ -264,3 +280,4 @@ export async function cancelTransfer(token: string | undefined, transferId: stri
   }
   return res.json();
 }
+

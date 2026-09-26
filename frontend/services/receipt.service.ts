@@ -6,9 +6,11 @@ export interface ReceiptLine {
   product_id: string;
   sku?: string;
   product_name?: string;
+  product?: { id?: string; name: string; sku: string };
   expected_quantity: number;
   received_quantity: number;
   destination_location_id?: string;
+  destination_location?: { id?: string; name: string };
 }
 
 export interface Receipt {
@@ -17,8 +19,10 @@ export interface Receipt {
   receipt_number: string;
   supplier_id: string;
   supplier_name?: string;
+  supplier?: { id?: string; name: string; code?: string };
   warehouse_id: string;
   warehouse_name?: string;
+  warehouse?: { id?: string; name: string; code?: string };
   destination_location_id: string;
   destination_location_name?: string;
   status: 'DRAFT' | 'WAITING' | 'PARTIAL' | 'DONE' | 'CANCELLED';
@@ -163,10 +167,12 @@ export async function fetchReceipt(token: string | undefined, receiptId: string)
 }
 
 export async function createReceipt(
-  token: string | undefined,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  payload: any
+  arg1?: any,
+  arg2?: any
 ): Promise<Receipt> {
+  const token = (typeof arg1 === 'string' && (arg1.startsWith('eyJ') || arg1.length > 50)) ? arg1 : (typeof arg2 === 'string' ? arg2 : undefined);
+  const payload = typeof arg1 === 'object' ? arg1 : arg2;
+
   if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true' || !token) {
     const list = getDemoReceipts();
     const newReceipt: Receipt = {
@@ -205,11 +211,24 @@ export async function createReceipt(
 }
 
 export async function validateReceipt(
-  token: string | undefined,
-  receiptId: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  req?: any
+  arg1?: any,
+  arg2?: any,
+  arg3?: any
 ): Promise<Receipt> {
+  let token: string | undefined;
+  let receiptId: string;
+  let req: any;
+
+  if (typeof arg1 === 'string' && (arg1.startsWith('eyJ') || arg1.length > 50)) {
+    token = arg1;
+    receiptId = arg2;
+    req = arg3;
+  } else {
+    receiptId = arg1;
+    req = arg2?.lines ? arg2 : { lines: arg2 };
+    token = arg3;
+  }
+
   if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true' || !token) {
     const list = getDemoReceipts();
     const updated = list.map(r => {
@@ -245,7 +264,10 @@ export async function validateReceipt(
   return res.json();
 }
 
-export async function cancelReceipt(token: string | undefined, receiptId: string): Promise<Receipt> {
+export async function cancelReceipt(arg1?: string, arg2?: string): Promise<Receipt> {
+  const token = (arg1 && (arg1.startsWith('eyJ') || arg1.length > 50)) ? arg1 : arg2;
+  const receiptId = (arg1 && (arg1.startsWith('eyJ') || arg1.length > 50)) ? arg2 || '' : arg1 || '';
+
   if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true' || !token) {
     const list = getDemoReceipts();
     const updated = list.map(r =>
@@ -267,3 +289,4 @@ export async function cancelReceipt(token: string | undefined, receiptId: string
   }
   return res.json();
 }
+

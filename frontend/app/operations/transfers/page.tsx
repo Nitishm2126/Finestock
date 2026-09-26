@@ -335,12 +335,12 @@ export default function TransfersPage() {
                           </span>
                         </td>
                         <td className="text-xs">
-                          <p className="font-semibold text-[var(--text-primary)]">{trf.source_warehouse?.name}</p>
-                          <p className="text-[10px] text-[var(--text-muted)]">{trf.source_location?.name || 'Bin Bay'}</p>
+                          <p className="font-semibold text-[var(--text-primary)]">{trf.source_warehouse?.name || trf.source_warehouse_name}</p>
+                          <p className="text-[10px] text-[var(--text-muted)]">{trf.source_location?.name || trf.source_location_name || 'Bin Bay'}</p>
                         </td>
                         <td className="text-xs">
-                          <p className="font-semibold text-[var(--text-primary)]">{trf.destination_warehouse?.name}</p>
-                          <p className="text-[10px] text-[var(--text-muted)]">{trf.destination_location?.name || 'Target Bay'}</p>
+                          <p className="font-semibold text-[var(--text-primary)]">{trf.destination_warehouse?.name || trf.destination_warehouse_name}</p>
+                          <p className="text-[10px] text-[var(--text-muted)]">{trf.destination_location?.name || trf.destination_location_name || 'Target Bay'}</p>
                         </td>
                         <td>
                           <span className="text-xs font-semibold px-2 py-0.5 rounded bg-[var(--surface-muted)] border border-[var(--border)]">
@@ -457,7 +457,7 @@ export default function TransfersPage() {
                     onChange={e => setForm({ ...form, source_location_id: e.target.value })}
                     className="fs-input text-xs"
                   >
-                    {warehouses.find(w => w.id === form.source_warehouse_id)?.locations?.map(loc => (
+                    {warehouses.find(w => w.id === form.source_warehouse_id)?.locations?.map((loc: any) => (
                       <option key={loc.id} value={loc.id}>{loc.name}</option>
                     ))}
                   </select>
@@ -503,7 +503,7 @@ export default function TransfersPage() {
                     onChange={e => setForm({ ...form, destination_location_id: e.target.value })}
                     className="fs-input text-xs"
                   >
-                    {warehouses.find(w => w.id === form.destination_warehouse_id)?.locations?.map(loc => (
+                    {warehouses.find(w => w.id === form.destination_warehouse_id)?.locations?.map((loc: any) => (
                       <option key={loc.id} value={loc.id}>{loc.name}</option>
                     ))}
                   </select>
@@ -626,11 +626,11 @@ export default function TransfersPage() {
               <div className="p-3 rounded-lg border bg-[var(--surface-muted)] space-y-2 text-xs" style={{ borderColor: 'var(--border)' }}>
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-[var(--primary)]">FROM:</span>
-                  <span>{selectedTransfer.source_warehouse?.name} ({selectedTransfer.source_location?.name})</span>
+                  <span>{selectedTransfer.source_warehouse?.name || selectedTransfer.source_warehouse_name} ({selectedTransfer.source_location?.name || selectedTransfer.source_location_name})</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-emerald-500">TO:</span>
-                  <span>{selectedTransfer.destination_warehouse?.name} ({selectedTransfer.destination_location?.name})</span>
+                  <span>{selectedTransfer.destination_warehouse?.name || selectedTransfer.destination_warehouse_name} ({selectedTransfer.destination_location?.name || selectedTransfer.destination_location_name})</span>
                 </div>
               </div>
 
@@ -640,11 +640,11 @@ export default function TransfersPage() {
                   Transfer Line Items
                 </h4>
                 <div className="space-y-2">
-                  {selectedTransfer.lines.map(line => (
+                  {selectedTransfer.lines.map((line: any) => (
                     <div key={line.id} className="p-3 rounded-lg border bg-[var(--surface-muted)] text-xs flex justify-between items-center" style={{ borderColor: 'var(--border)' }}>
                       <div>
-                        <p className="font-semibold text-sm text-[var(--text-primary)]">{line.product?.name}</p>
-                        <p className="text-[10px] font-mono text-[var(--text-muted)]">SKU: {line.product?.sku}</p>
+                        <p className="font-semibold text-sm text-[var(--text-primary)]">{line.product?.name || line.product_name || 'Item'}</p>
+                        <p className="text-[10px] font-mono text-[var(--text-muted)]">SKU: {line.product?.sku || line.sku || 'SKU'}</p>
                       </div>
                       <span className="font-bold text-sm text-[var(--primary)]">
                         {line.quantity} units

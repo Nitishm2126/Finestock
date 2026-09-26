@@ -149,6 +149,30 @@ export default function OperationsPage() {
           </div>
         </div>
 
+        {/* Dedicated Phase 2 & 3 Workflow Hub */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+          {[
+            { label: 'Receipts', href: '/operations/receipts', desc: 'Inbound Inflow' },
+            { label: 'Deliveries', href: '/operations/deliveries', desc: 'Outbound Dispatches' },
+            { label: 'Picking', href: '/operations/picking', desc: 'Bin Allocation' },
+            { label: 'Packing', href: '/operations/packing', desc: 'Parcel Station' },
+            { label: 'Transfers', href: '/operations/transfers', desc: 'Internal Moves' },
+            { label: 'Adjustments', href: '/operations/adjustments', desc: 'Cycle Audits' },
+            { label: 'History', href: '/operations/history', desc: 'Ledger Audit' },
+            { label: 'Live Board', href: '/operations/live', desc: 'Real-time Board' },
+          ].map(hub => (
+            <button
+              key={hub.label}
+              onClick={() => router.push(hub.href)}
+              className="p-3 rounded-xl border bg-[var(--surface)] text-left hover:border-[var(--primary)] hover:bg-[var(--surface-muted)] transition-all flex flex-col justify-between"
+              style={{ borderColor: 'var(--border)' }}
+            >
+              <span className="font-bold text-xs text-[var(--text-primary)]">{hub.label}</span>
+              <span className="text-[10px] text-[var(--text-muted)] mt-1">{hub.desc} &rarr;</span>
+            </button>
+          ))}
+        </div>
+
         {/* Metrics */}
         <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
           <MetricCard label="All Operations" value={counts.total} />

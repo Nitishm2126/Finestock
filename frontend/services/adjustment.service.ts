@@ -11,6 +11,9 @@ export interface Adjustment {
   product_id: string;
   sku?: string;
   product_name?: string;
+  product?: { id?: string; name: string; sku: string };
+  warehouse?: { id?: string; name: string; code?: string };
+  location?: { id?: string; name: string };
   system_quantity: number;
   physical_count: number;
   difference: number;
@@ -23,6 +26,8 @@ export interface Adjustment {
   created_at: string;
   updated_at: string;
 }
+
+export type StockAdjustment = Adjustment;
 
 const DEMO_STORAGE_KEY = 'fs_demo_adjustments';
 
@@ -135,10 +140,12 @@ export async function fetchAdjustments(
 }
 
 export async function createAdjustment(
-  token: string | undefined,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  payload: any
+  arg1: any,
+  arg2?: any
 ): Promise<Adjustment> {
+  const token = typeof arg1 === 'string' ? arg1 : (typeof arg2 === 'string' ? arg2 : undefined);
+  const payload = typeof arg1 === 'object' && arg1 !== null ? arg1 : arg2;
+
   if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true' || !token) {
     const list = getDemoAdjustments();
     const systemQty = payload.system_quantity || 50;

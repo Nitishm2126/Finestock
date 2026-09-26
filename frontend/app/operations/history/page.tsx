@@ -80,7 +80,7 @@ export default function MovementHistoryPage() {
       `"${m.warehouse_name}"`,
       `"${m.location_name}"`,
       m.quantity_delta,
-      m.balance_after,
+      m.balance_after ?? m.quantity_after,
       `"${m.actor_name}"`,
       m.reference_number || '',
     ]);
@@ -151,7 +151,7 @@ export default function MovementHistoryPage() {
           />
           <MetricCard
             label="Internal Transfers"
-            value={movements.filter(m => m.event_type.startsWith('TRANSFER')).length}
+            value={movements.filter(m => (m.event_type || m.transaction_type || '').startsWith('TRANSFER')).length}
             color="primary"
             icon={<ArrowLeftRight className="h-5 w-5 text-[var(--primary)]" />}
           />
@@ -248,7 +248,7 @@ export default function MovementHistoryPage() {
                           <p className="font-mono text-xs text-[var(--text-muted)]">{m.sku}</p>
                         </td>
                         <td>
-                          <StatusBadge status={m.event_type} size="sm" />
+                          <StatusBadge status={m.event_type || m.transaction_type || 'TRANSACTION'} size="sm" />
                         </td>
                         <td className="text-xs text-[var(--text-secondary)]">
                           <p className="font-medium text-[var(--text-primary)]">{m.warehouse_name}</p>
@@ -265,7 +265,7 @@ export default function MovementHistoryPage() {
                         </td>
                         <td>
                           <span className="font-mono text-xs font-bold text-[var(--text-primary)]">
-                            {Number(m.balance_after)}
+                            {Number(m.balance_after ?? m.quantity_after)}
                           </span>
                         </td>
                         <td className="text-xs text-[var(--text-secondary)]">

@@ -112,9 +112,12 @@ export async function fetchSuppliers(
 }
 
 export async function createSupplier(
-  token: string | undefined,
-  payload: Omit<Supplier, 'id' | 'created_at' | 'updated_at'>
+  arg1?: any,
+  arg2?: any
 ): Promise<Supplier> {
+  const token = (typeof arg1 === 'string' && (arg1.startsWith('eyJ') || arg1.length > 50)) ? arg1 : (typeof arg2 === 'string' ? arg2 : undefined);
+  const payload = typeof arg1 === 'object' ? arg1 : arg2;
+
   if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true' || !token) {
     const list = getDemoSuppliers();
     const newSup: Supplier = {
@@ -143,10 +146,24 @@ export async function createSupplier(
 }
 
 export async function updateSupplier(
-  token: string | undefined,
-  supplierId: string,
-  payload: Partial<Supplier>
+  arg1?: any,
+  arg2?: any,
+  arg3?: any
 ): Promise<Supplier> {
+  let token: string | undefined;
+  let supplierId: string;
+  let payload: Partial<Supplier>;
+
+  if (typeof arg1 === 'string' && (arg1.startsWith('eyJ') || arg1.length > 50)) {
+    token = arg1;
+    supplierId = arg2;
+    payload = arg3;
+  } else {
+    supplierId = arg1;
+    payload = arg2;
+    token = arg3;
+  }
+
   if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true' || !token) {
     const list = getDemoSuppliers();
     const updated = list.map(s =>
@@ -172,3 +189,13 @@ export async function updateSupplier(
   }
   return res.json();
 }
+
+export async function toggleSupplierStatus(
+  supplierId: string,
+  is_active: boolean,
+  token?: string
+): Promise<Supplier> {
+  return updateSupplier(supplierId, { is_active }, token);
+}
+
+

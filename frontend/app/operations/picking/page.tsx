@@ -219,13 +219,13 @@ export default function PickingStationPage() {
                         <StatusBadge status={selectedOrder.status} />
                       </div>
                       <p className="text-xs mt-1 text-[var(--text-secondary)]">
-                        Customer: <strong>{selectedOrder.customer_name}</strong> | Warehouse: <strong>{selectedOrder.warehouse?.name}</strong>
+                        Customer: <strong>{selectedOrder.customer_name}</strong> | Warehouse: <strong>{selectedOrder.warehouse?.name || (selectedOrder as any).warehouse_name || 'Warehouse'}</strong>
                       </p>
                     </div>
-                    {selectedOrder.destination_address && (
+                    {(selectedOrder as any).destination_address && (
                       <div className="text-right text-xs text-[var(--text-muted)]">
                         <MapPin className="h-3.5 w-3.5 inline mr-1" />
-                        {selectedOrder.destination_address}
+                        {(selectedOrder as any).destination_address}
                       </div>
                     )}
                   </div>
@@ -236,7 +236,7 @@ export default function PickingStationPage() {
                       Pick List Items ({selectedOrder.lines.length})
                     </h3>
 
-                    {selectedOrder.lines.map(line => {
+                    {selectedOrder.lines.map((line: any) => {
                       const req = Number(line.requested_quantity);
                       const currentPicked = Number(line.picked_quantity);
                       const toPick = pickQuantities[line.id] ?? 0;
@@ -253,11 +253,11 @@ export default function PickingStationPage() {
                             <div className="flex items-center gap-2">
                               <Package className="h-4 w-4 text-[var(--primary)]" />
                               <span className="font-semibold text-sm text-[var(--text-primary)]">
-                                {line.product?.name}
+                                {line.product?.name || line.product_name || 'Item'}
                               </span>
                             </div>
                             <div className="flex flex-wrap items-center gap-3 mt-1 text-xs text-[var(--text-muted)]">
-                              <span>SKU: <strong className="font-mono text-[var(--text-secondary)]">{line.product?.sku}</strong></span>
+                              <span>SKU: <strong className="font-mono text-[var(--text-secondary)]">{line.product?.sku || line.sku || 'SKU'}</strong></span>
                               <span>Target Bin: <strong className="text-[var(--primary)]">{line.location?.name || 'Main Bay'}</strong></span>
                               <span>Requested: <strong>{req}</strong></span>
                               <span>Already Picked: <strong className="text-emerald-500">{currentPicked}</strong></span>

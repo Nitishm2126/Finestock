@@ -6,12 +6,14 @@ export interface DeliveryLine {
   product_id: string;
   sku?: string;
   product_name?: string;
+  product?: { id?: string; name: string; sku: string };
   requested_quantity: number;
   reserved_quantity: number;
   picked_quantity: number;
   packed_quantity: number;
   delivered_quantity: number;
   source_location_id?: string;
+  location?: { id?: string; name: string };
 }
 
 export interface DeliveryOrder {
@@ -21,8 +23,10 @@ export interface DeliveryOrder {
   customer_name: string;
   warehouse_id: string;
   warehouse_name?: string;
+  warehouse?: { id?: string; name: string; code?: string };
   source_location_id: string;
   source_location_name?: string;
+  destination_address?: string;
   status:
     | 'DRAFT'
     | 'WAITING'
@@ -34,7 +38,7 @@ export interface DeliveryOrder {
     | 'DELIVERED'
     | 'CANCELLED';
   scheduled_date?: string;
-  priority: 'NORMAL' | 'HIGH' | 'URGENT';
+  priority: 'NORMAL' | 'HIGH' | 'URGENT' | string;
   notes?: string;
   created_by?: string;
   version: number;
@@ -177,10 +181,12 @@ export async function fetchDelivery(token: string | undefined, deliveryId: strin
 }
 
 export async function createDelivery(
-  token: string | undefined,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  payload: any
+  arg1?: any,
+  arg2?: any
 ): Promise<DeliveryOrder> {
+  const token = (typeof arg1 === 'string' && (arg1.startsWith('eyJ') || arg1.length > 50)) ? arg1 : (typeof arg2 === 'string' ? arg2 : undefined);
+  const payload = typeof arg1 === 'object' ? arg1 : arg2;
+
   if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true' || !token) {
     const list = getDemoDeliveries();
     const newDelivery: DeliveryOrder = {
@@ -221,7 +227,15 @@ export async function createDelivery(
   return res.json();
 }
 
-export async function reserveDelivery(token: string | undefined, deliveryId: string): Promise<DeliveryOrder> {
+function resolveTokenAndId(a?: string, b?: string): { token?: string; deliveryId: string } {
+  if (a && (a.startsWith('eyJ') || a.length > 50)) {
+    return { token: a, deliveryId: b || '' };
+  }
+  return { deliveryId: a || '', token: b };
+}
+
+export async function reserveDelivery(arg1?: string, arg2?: string): Promise<DeliveryOrder> {
+  const { token, deliveryId } = resolveTokenAndId(arg1, arg2);
   if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true' || !token) {
     const list = getDemoDeliveries();
     const updated = list.map(d => {
@@ -256,11 +270,24 @@ export async function reserveDelivery(token: string | undefined, deliveryId: str
 }
 
 export async function pickDelivery(
-  token: string | undefined,
-  deliveryId: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  req?: any
+  arg1?: string,
+  arg2?: any,
+  arg3?: any
 ): Promise<DeliveryOrder> {
+  let token: string | undefined;
+  let deliveryId: string;
+  let req: any;
+
+  if (typeof arg1 === 'string' && (arg1.startsWith('eyJ') || arg1.length > 50)) {
+    token = arg1;
+    deliveryId = arg2;
+    req = arg3;
+  } else {
+    deliveryId = arg1 || '';
+    req = arg2?.lines ? arg2 : { lines: arg2 };
+    token = arg3;
+  }
+
   if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true' || !token) {
     const list = getDemoDeliveries();
     const updated = list.map(d => {
@@ -297,11 +324,24 @@ export async function pickDelivery(
 }
 
 export async function packDelivery(
-  token: string | undefined,
-  deliveryId: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  req?: any
+  arg1?: string,
+  arg2?: any,
+  arg3?: any
 ): Promise<DeliveryOrder> {
+  let token: string | undefined;
+  let deliveryId: string;
+  let req: any;
+
+  if (typeof arg1 === 'string' && (arg1.startsWith('eyJ') || arg1.length > 50)) {
+    token = arg1;
+    deliveryId = arg2;
+    req = arg3;
+  } else {
+    deliveryId = arg1 || '';
+    req = arg2?.lines ? arg2 : { lines: arg2 };
+    token = arg3;
+  }
+
   if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true' || !token) {
     const list = getDemoDeliveries();
     const updated = list.map(d => {
@@ -337,7 +377,8 @@ export async function packDelivery(
   return res.json();
 }
 
-export async function deliverDelivery(token: string | undefined, deliveryId: string): Promise<DeliveryOrder> {
+export async function deliverDelivery(arg1?: string, arg2?: string): Promise<DeliveryOrder> {
+  const { token, deliveryId } = resolveTokenAndId(arg1, arg2);
   if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true' || !token) {
     const list = getDemoDeliveries();
     const updated = list.map(d => {
@@ -373,7 +414,8 @@ export async function deliverDelivery(token: string | undefined, deliveryId: str
   return res.json();
 }
 
-export async function cancelDelivery(token: string | undefined, deliveryId: string): Promise<DeliveryOrder> {
+export async function cancelDelivery(arg1?: string, arg2?: string): Promise<DeliveryOrder> {
+  const { token, deliveryId } = resolveTokenAndId(arg1, arg2);
   if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true' || !token) {
     const list = getDemoDeliveries();
     const updated = list.map(d =>
@@ -402,3 +444,9 @@ export async function cancelDelivery(token: string | undefined, deliveryId: stri
   }
   return res.json();
 }
+
+export const deliverOrder = deliverDelivery;
+export const pickDeliveryLine = (deliveryId: string, lineMap: Record<string, number>, token?: string) =>
+  pickDelivery(deliveryId, lineMap, token);
+
+

@@ -627,7 +627,7 @@ export default function DeliveriesPage() {
                           }}
                           className="fs-input text-xs"
                         >
-                          {availableLocations.map(loc => (
+                          {availableLocations.map((loc: any) => (
                             <option key={loc.id} value={loc.id}>{loc.name}</option>
                           ))}
                         </select>
@@ -705,14 +705,14 @@ export default function DeliveriesPage() {
                   Fulfillment Status per SKU
                 </h4>
                 <div className="space-y-2">
-                  {selectedDelivery.lines.map(line => (
+                  {selectedDelivery.lines.map((line: any) => (
                     <div key={line.id} className="p-3 rounded-lg border bg-[var(--surface-muted)] text-xs space-y-1.5" style={{ borderColor: 'var(--border)' }}>
                       <div className="flex justify-between font-semibold text-sm text-[var(--text-primary)]">
-                        <span>{line.product?.name}</span>
+                        <span>{line.product?.name || line.product_name || 'Item'}</span>
                         <span>{line.delivered_quantity} / {line.requested_quantity} dispatched</span>
                       </div>
                       <div className="flex justify-between text-[var(--text-muted)]">
-                        <span>SKU: {line.product?.sku}</span>
+                        <span>SKU: {line.product?.sku || line.sku || 'SKU'}</span>
                         <span>Location: {line.location?.name || 'Bin Bay'}</span>
                       </div>
                       <div className="grid grid-cols-3 gap-2 pt-1 border-t text-[10px] text-center" style={{ borderColor: 'var(--border)' }}>

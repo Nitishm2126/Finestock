@@ -271,7 +271,7 @@ export default function PackingStationPage() {
                       Items to Pack ({selectedOrder.lines.length})
                     </h3>
 
-                    {selectedOrder.lines.map(line => {
+                    {selectedOrder.lines.map((line: any) => {
                       const req = Number(line.requested_quantity);
                       const picked = Number(line.picked_quantity);
                       const currentPacked = Number(line.packed_quantity);
@@ -289,11 +289,11 @@ export default function PackingStationPage() {
                             <div className="flex items-center gap-2">
                               <Package className="h-4 w-4 text-purple-500" />
                               <span className="font-semibold text-sm text-[var(--text-primary)]">
-                                {line.product?.name}
+                                {line.product?.name || line.product_name || 'Item'}
                               </span>
                             </div>
                             <div className="flex flex-wrap items-center gap-3 mt-1 text-xs text-[var(--text-muted)]">
-                              <span>SKU: <strong className="font-mono text-[var(--text-secondary)]">{line.product?.sku}</strong></span>
+                              <span>SKU: <strong className="font-mono text-[var(--text-secondary)]">{line.product?.sku || line.sku || 'SKU'}</strong></span>
                               <span>Total Picked: <strong>{picked}</strong></span>
                               <span>Already Packed: <strong className="text-purple-400">{currentPacked}</strong></span>
                             </div>
