@@ -13,6 +13,7 @@ import {
   Settings,
   X,
   ShieldCheck,
+  Users,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -29,6 +30,7 @@ export const navigationItems = [
   { name: 'Operations', href: '#', icon: ArrowLeftRight, badge: 'Phase 4' },
   { name: 'Ledger', href: '#', icon: BookOpenText, badge: 'Core' },
   { name: 'Intelligence', href: '#', icon: Sparkles, badge: 'AI' },
+  { name: 'Users', href: '/users', icon: Users, badge: 'Phase 1' },
   { name: 'Settings', href: '#', icon: Settings },
 ];
 

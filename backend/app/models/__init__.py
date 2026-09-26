@@ -8,6 +8,8 @@ from app.models.product import Product
 from app.models.warehouse import Warehouse
 from app.models.location import Location
 from app.models.stock_position import StockPosition
+from app.models.stock_ledger_entry import StockLedgerEntry
+from app.models.audit_event import AuditEvent
 
 __all__ = [
     "Base",
@@ -20,4 +22,6 @@ __all__ = [
     "Warehouse",
     "Location",
     "StockPosition",
+    "StockLedgerEntry",
+    "AuditEvent",
 ]

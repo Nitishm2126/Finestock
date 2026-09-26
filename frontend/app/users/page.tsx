@@ -1,0 +1,250 @@
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/auth/AuthContext';
+import { AppShell } from '@/components/layout/AppShell';
+import { User, Role } from '@/types/user';
+import { userService } from '@/services/user.service';
+import { Loader2, Plus, Shield, UserCheck, X } from 'lucide-react';
+
+export default function UsersPage() {
+  const router = useRouter();
+  const { user, isLoading, isAuthenticated } = useAuth();
+  
+  const [users, setUsers] = useState<User[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  const [isAdding, setIsAdding] = useState(false);
+  const [formData, setFormData] = useState({
+    email: '',
+    first_name: '',
+    last_name: '',
+    password: '',
+    role_id: '',
+  });
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push('/login');
+    }
+  }, [isLoading, isAuthenticated, router]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchData();
+    }
+  }, [isAuthenticated]);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [usersRes, rolesRes] = await Promise.all([
+        userService.getUsers(),
+        userService.getRoles()
+      ]);
+      setUsers(usersRes.users);
+      setRoles(rolesRes);
+    } catch (error) {
+      console.error('Failed to fetch data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await userService.createUser(formData);
+      setIsAdding(false);
+      setFormData({ email: '', first_name: '', last_name: '', password: '', role_id: '' });
+      fetchData();
+    } catch (error: any) {
+      alert(error.message);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950">
+        <Loader2 className="h-8 w-8 animate-spin text-emerald-400 mx-auto" />
+      </div>
+    );
+  }
+
+  if (!user) return null;
+
+  return (
+    <AppShell title="User Management" activeItem="Users">
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-white">Users & Roles</h1>
+            <p className="text-sm text-slate-400 mt-1">Manage organization access and role-based permissions.</p>
+          </div>
+          {user.role === 'ADMIN' && (
+            <button
+              onClick={() => setIsAdding(true)}
+              className="flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600 transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              Add User
+            </button>
+          )}
+        </div>
+
+        {isAdding && (
+          <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-white">Create New User</h3>
+              <button onClick={() => setIsAdding(false)} className="text-slate-400 hover:text-white">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <form onSubmit={handleCreateUser} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1">First Name</label>
+                <input
+                  required
+                  type="text"
+                  className="w-full rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2 text-sm text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                  value={formData.first_name}
+                  onChange={e => setFormData({ ...formData, first_name: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1">Last Name</label>
+                <input
+                  required
+                  type="text"
+                  className="w-full rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2 text-sm text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                  value={formData.last_name}
+                  onChange={e => setFormData({ ...formData, last_name: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1">Email</label>
+                <input
+                  required
+                  type="email"
+                  className="w-full rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2 text-sm text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                  value={formData.email}
+                  onChange={e => setFormData({ ...formData, email: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1">Password</label>
+                <input
+                  required
+                  type="password"
+                  minLength={8}
+                  className="w-full rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2 text-sm text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                  value={formData.password}
+                  onChange={e => setFormData({ ...formData, password: e.target.value })}
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-xs font-medium text-slate-400 mb-1">Role</label>
+                <select
+                  required
+                  className="w-full rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2 text-sm text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                  value={formData.role_id}
+                  onChange={e => setFormData({ ...formData, role_id: e.target.value })}
+                >
+                  <option value="">Select a role...</option>
+                  {roles.map(r => (
+                    <option key={r.id} value={r.id}>{r.name} - {r.description}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="md:col-span-2 flex justify-end gap-3 mt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAdding(false)}
+                  className="rounded-lg px-4 py-2 text-sm font-medium text-slate-300 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-lg bg-emerald-500 px-6 py-2 text-sm font-semibold text-white hover:bg-emerald-600 transition-colors"
+                >
+                  Create User
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* Users Table */}
+        <div className="rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden">
+          {loading ? (
+            <div className="p-8 text-center">
+              <Loader2 className="h-6 w-6 animate-spin text-emerald-500 mx-auto" />
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm text-slate-300">
+                <thead className="bg-slate-800/50 text-xs uppercase text-slate-400">
+                  <tr>
+                    <th className="px-6 py-4 font-semibold">User</th>
+                    <th className="px-6 py-4 font-semibold">Role</th>
+                    <th className="px-6 py-4 font-semibold">Status</th>
+                    <th className="px-6 py-4 font-semibold">Joined</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800">
+                  {users.map(u => (
+                    <tr key={u.id} className="hover:bg-slate-800/20 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 text-emerald-400 font-semibold border border-slate-700">
+                            {u.first_name[0]}{u.last_name[0]}
+                          </div>
+                          <div>
+                            <div className="font-medium text-white">{u.first_name} {u.last_name}</div>
+                            <div className="text-xs text-slate-500">{u.email}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-800 px-2.5 py-1 text-xs font-medium text-slate-300 border border-slate-700">
+                          <Shield className="h-3.5 w-3.5 text-emerald-500" />
+                          {u.role.name}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        {u.is_active ? (
+                          <span className="inline-flex items-center gap-1.5 text-emerald-400 text-xs font-medium">
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                            Active
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 text-slate-500 text-xs font-medium">
+                            <span className="h-1.5 w-1.5 rounded-full bg-slate-600" />
+                            Inactive
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-slate-500 text-xs">
+                        {new Date(u.created_at).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  ))}
+                  {users.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="px-6 py-8 text-center text-slate-500">
+                        No users found in this organization.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+    </AppShell>
+  );
+}
