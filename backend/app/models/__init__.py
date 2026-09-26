@@ -10,6 +10,12 @@ from app.models.location import Location
 from app.models.stock_position import StockPosition
 from app.models.stock_ledger_entry import StockLedgerEntry
 from app.models.audit_event import AuditEvent
+from app.models.supplier import Supplier
+from app.models.receipt import Receipt, ReceiptLine
+from app.models.delivery import DeliveryOrder, DeliveryOrderLine
+from app.models.transfer import Transfer, TransferLine
+from app.models.adjustment import Adjustment
+from app.models.operational_alert import OperationalAlert
 
 __all__ = [
     "Base",
@@ -24,4 +30,13 @@ __all__ = [
     "StockPosition",
     "StockLedgerEntry",
     "AuditEvent",
+    "Supplier",
+    "Receipt",
+    "ReceiptLine",
+    "DeliveryOrder",
+    "DeliveryOrderLine",
+    "Transfer",
+    "TransferLine",
+    "Adjustment",
+    "OperationalAlert",
 ]
