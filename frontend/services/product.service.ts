@@ -13,9 +13,18 @@ export interface Product {
   category: any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   uom: any;
+  current_stock?: number;
+  status?: string;
 }
 
+import { DEMO_PRODUCTS } from '@/lib/demo/data';
+
 export async function fetchProducts(token: string): Promise<Product[]> {
+  if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return DEMO_PRODUCTS as any;
+  }
+
   const res = await fetch(`${API_BASE_URL}/products/`, {
     headers: { Authorization: `Bearer ${token}` }
   });

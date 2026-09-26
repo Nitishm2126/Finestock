@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { AppShell } from '@/components/layout/AppShell';
-import { Package, Search, Plus, Loader2 } from 'lucide-react';
+import { Plus, Loader2 } from 'lucide-react';
 import { fetchProducts, Product } from '@/services/product.service';
 
 export default function ProductsPage() {
@@ -63,6 +63,8 @@ export default function ProductsPage() {
                 <th className="px-6 py-4">Name</th>
                 <th className="px-6 py-4">Category</th>
                 <th className="px-6 py-4">UOM</th>
+                <th className="px-6 py-4">Current Stock</th>
+                <th className="px-6 py-4">Reorder Point</th>
                 <th className="px-6 py-4">Status</th>
               </tr>
             </thead>
@@ -80,10 +82,22 @@ export default function ProductsPage() {
                     <td className="px-6 py-4 font-medium text-white">{p.name}</td>
                     <td className="px-6 py-4">{p.category?.name || 'N/A'}</td>
                     <td className="px-6 py-4">{p.uom?.name || 'N/A'}</td>
+                    <td className="px-6 py-4 font-semibold text-white">{p.current_stock ?? 'N/A'}</td>
+                    <td className="px-6 py-4">{p.reorder_point}</td>
                     <td className="px-6 py-4">
-                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${p.is_active ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-500/10 text-slate-400 border border-slate-500/20'}`}>
-                        {p.is_active ? 'Active' : 'Inactive'}
-                      </span>
+                      {p.status ? (
+                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          p.status === 'Critical' ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 
+                          p.status === 'Low Stock' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 
+                          'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                        }`}>
+                          {p.status}
+                        </span>
+                      ) : (
+                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${p.is_active ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-500/10 text-slate-400 border border-slate-500/20'}`}>
+                          {p.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                      )}
                     </td>
                   </tr>
                 ))

@@ -72,10 +72,37 @@ export default function WarehousesPage() {
                   </span>
                 </div>
                 <h3 className="text-lg font-bold text-white mb-1">{w.name}</h3>
-                <p className="text-sm font-mono text-slate-400 mb-4">{w.code}</p>
-                <div className="pt-4 border-t border-slate-800/50 flex justify-between text-sm">
-                  <span className="text-slate-500">Locations</span>
-                  <span className="text-white font-medium">{w.location_count}</span>
+                <div className="flex justify-between items-center mb-4">
+                  <p className="text-sm font-mono text-slate-400">{w.code}</p>
+                  <p className="text-xs text-slate-500">{w.city}</p>
+                </div>
+                
+                <div className="space-y-2 pt-4 border-t border-slate-800/50 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Locations</span>
+                    <span className="text-white font-medium">{w.locations_count}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Stock Units</span>
+                    <span className="text-white font-medium">{w.stock_units?.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-500">Utilization</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-16 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                        <div className={`h-full ${w.utilization && w.utilization > 70 ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{ width: `${w.utilization || 0}%` }} />
+                      </div>
+                      <span className="text-white font-medium text-xs">{w.utilization}%</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center pt-1">
+                    <span className="text-slate-500">Status</span>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                      w.status === 'Healthy' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                    }`}>
+                      {w.status}
+                    </span>
+                  </div>
                 </div>
               </div>
             ))

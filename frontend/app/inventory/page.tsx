@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { AppShell } from '@/components/layout/AppShell';
-import { Layers, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { fetchInventory, StockPosition } from '@/services/inventory.service';
 
 export default function InventoryPage() {
@@ -58,9 +58,10 @@ export default function InventoryPage() {
               <tr>
                 <th className="px-6 py-4">Product</th>
                 <th className="px-6 py-4">Location</th>
-                <th className="px-6 py-4 text-right">Available</th>
+                <th className="px-6 py-4 text-right">Physical</th>
                 <th className="px-6 py-4 text-right">Reserved</th>
-                <th className="px-6 py-4 text-right">Total</th>
+                <th className="px-6 py-4 text-right">Available</th>
+                <th className="px-6 py-4 text-center">Status</th>
               </tr>
             </thead>
             <tbody>
@@ -81,9 +82,16 @@ export default function InventoryPage() {
                       <div className="text-slate-300">{p.warehouse_name}</div>
                       <div className="text-xs text-slate-500">{p.location_name}</div>
                     </td>
-                    <td className="px-6 py-4 text-right font-medium text-emerald-400">{p.available_quantity}</td>
-                    <td className="px-6 py-4 text-right text-orange-400">{p.reserved_quantity}</td>
                     <td className="px-6 py-4 text-right font-medium text-white">{p.quantity}</td>
+                    <td className="px-6 py-4 text-right text-orange-400">{p.reserved_quantity}</td>
+                    <td className="px-6 py-4 text-right font-medium text-emerald-400">{p.available_quantity}</td>
+                    <td className="px-6 py-4 text-center">
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                        p.available_quantity > 0 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                      }`}>
+                        {p.available_quantity > 0 ? 'In Stock' : 'Out of Stock'}
+                      </span>
+                    </td>
                   </tr>
                 ))
               )}

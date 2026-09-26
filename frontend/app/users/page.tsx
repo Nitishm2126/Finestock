@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/auth/AuthContext';
 import { AppShell } from '@/components/layout/AppShell';
 import { User, Role } from '@/types/user';
 import { userService } from '@/services/user.service';
-import { Loader2, Plus, Shield, UserCheck, X } from 'lucide-react';
+import { Loader2, Plus, Shield, X } from 'lucide-react';
 
 export default function UsersPage() {
   const router = useRouter();

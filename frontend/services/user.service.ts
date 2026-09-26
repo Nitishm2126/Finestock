@@ -1,4 +1,5 @@
 import { User, UserListResponse, CreateUserPayload, UpdateUserPayload, Role } from '@/types/user';
+import { DEMO_USERS, DEMO_ROLES } from '@/lib/demo/data';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
 
@@ -12,6 +13,10 @@ class UserService {
   }
 
   async getUsers(skip = 0, limit = 100): Promise<UserListResponse> {
+    if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return { users: DEMO_USERS as any, total: DEMO_USERS.length };
+    }
     const res = await fetch(`${API_URL}/users/?skip=${skip}&limit=${limit}`, {
       method: 'GET',
       headers: this.getHeaders(),
@@ -23,6 +28,10 @@ class UserService {
   }
 
   async getRoles(): Promise<Role[]> {
+    if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return DEMO_ROLES as any;
+    }
     const res = await fetch(`${API_URL}/users/roles`, {
       method: 'GET',
       headers: this.getHeaders(),

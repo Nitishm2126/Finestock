@@ -6,10 +6,21 @@ export interface Warehouse {
   name: string;
   address?: string;
   is_active: boolean;
-  location_count: number;
+  locations_count: number;
+  city?: string;
+  stock_units?: number;
+  utilization?: number;
+  status?: string;
 }
 
+import { DEMO_WAREHOUSES } from '@/lib/demo/data';
+
 export async function fetchWarehouses(token: string): Promise<Warehouse[]> {
+  if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return DEMO_WAREHOUSES as any;
+  }
+
   const res = await fetch(`${API_BASE_URL}/warehouses/`, {
     headers: { Authorization: `Bearer ${token}` }
   });

@@ -8,9 +8,26 @@ export interface DashboardSummary {
   total_stock_units: number;
   low_stock_products: number;
   out_of_stock_products: number;
+  active_users?: number;
+  physical_stock?: number;
+  reserved_stock?: number;
+  available_stock?: number;
+  inventory_accuracy?: number;
+  stock_status?: {
+    healthy: number;
+    low: number;
+    critical: number;
+    out: number;
+  };
 }
 
+import { DEMO_DASHBOARD_SUMMARY } from '@/lib/demo/data';
+
 export async function fetchDashboardSummary(token: string): Promise<DashboardSummary> {
+  if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
+    return DEMO_DASHBOARD_SUMMARY;
+  }
+
   const res = await fetch(`${API_BASE_URL}/dashboard/summary`, {
     headers: {
       Authorization: `Bearer ${token}`,
