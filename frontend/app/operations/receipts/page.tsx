@@ -48,13 +48,13 @@ export default function ReceiptsPage() {
 
   // Create Modal
   const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [form, setForm] = useState({
+  const [form, setForm] = useState(() => ({
     supplier_id: '',
     warehouse_id: '',
     expected_date: new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0],
     reference_number: '',
     notes: '',
-  });
+  }));
 
   const [lines, setLines] = useState<Array<{
     product_id: string;

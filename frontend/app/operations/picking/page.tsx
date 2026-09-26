@@ -31,6 +31,16 @@ export default function PickingStationPage() {
     if (!authLoading && !isAuthenticated) router.push('/login');
   }, [authLoading, isAuthenticated, router]);
 
+  const selectOrderForPicking = useCallback((order: DeliveryOrder) => {
+    setSelectedOrder(order);
+    const initialPicks: Record<string, number> = {};
+    order.lines.forEach(line => {
+      const remainingToPick = Math.max(0, line.requested_quantity - line.picked_quantity);
+      initialPicks[line.id] = remainingToPick;
+    });
+    setPickQuantities(initialPicks);
+  }, []);
+
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
@@ -46,21 +56,11 @@ export default function PickingStationPage() {
     } finally {
       setLoading(false);
     }
-  }, [token, toast, selectedOrder]);
+  }, [token, toast, selectedOrder, selectOrderForPicking]);
 
   useEffect(() => {
     if (isAuthenticated) loadData();
   }, [isAuthenticated, loadData]);
-
-  const selectOrderForPicking = (order: DeliveryOrder) => {
-    setSelectedOrder(order);
-    const initialPicks: Record<string, number> = {};
-    order.lines.forEach(line => {
-      const remainingToPick = Math.max(0, line.requested_quantity - line.picked_quantity);
-      initialPicks[line.id] = remainingToPick;
-    });
-    setPickQuantities(initialPicks);
-  };
 
   const handleConfirmPick = async () => {
     if (!selectedOrder) return;

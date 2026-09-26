@@ -33,6 +33,16 @@ export default function PackingStationPage() {
     if (!authLoading && !isAuthenticated) router.push('/login');
   }, [authLoading, isAuthenticated, router]);
 
+  const selectOrderForPacking = useCallback((order: DeliveryOrder) => {
+    setSelectedOrder(order);
+    const initialPacks: Record<string, number> = {};
+    order.lines.forEach(line => {
+      const remainingToPack = Math.max(0, line.picked_quantity - line.packed_quantity);
+      initialPacks[line.id] = remainingToPack;
+    });
+    setPackQuantities(initialPacks);
+  }, []);
+
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
@@ -48,21 +58,11 @@ export default function PackingStationPage() {
     } finally {
       setLoading(false);
     }
-  }, [token, toast, selectedOrder]);
+  }, [token, toast, selectedOrder, selectOrderForPacking]);
 
   useEffect(() => {
     if (isAuthenticated) loadData();
   }, [isAuthenticated, loadData]);
-
-  const selectOrderForPacking = (order: DeliveryOrder) => {
-    setSelectedOrder(order);
-    const initialPacks: Record<string, number> = {};
-    order.lines.forEach(line => {
-      const remainingToPack = Math.max(0, line.picked_quantity - line.packed_quantity);
-      initialPacks[line.id] = remainingToPack;
-    });
-    setPackQuantities(initialPacks);
-  };
 
   const handleConfirmPack = async () => {
     if (!selectedOrder) return;
