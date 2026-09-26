@@ -6,7 +6,6 @@ import {
   Database,
   Cpu,
   Layers,
-  ArrowRight,
   Activity,
   CheckCircle2,
   Clock,
